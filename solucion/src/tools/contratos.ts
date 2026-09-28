@@ -30,7 +30,7 @@ import type {
   ResultadoRegistro,
   ResultadoValidacion,
 } from "../core/tipos.ts"
-import { nombreHerramienta, type Herramienta } from "./contrato.ts"
+import { nombreHerramienta, type Herramienta, type HerramientaGenerica } from "./contrato.ts"
 import {
   auditarContrato,
   cargarTodo,
@@ -412,6 +412,24 @@ export const alertas: Herramienta<typeof argsAlertas> = {
 
 /** Las cinco herramientas, en el orden en que las usa un turno típico. */
 export const HERRAMIENTAS = [leer_buzon, extraer, validar, registrar, alertas] as const
+
+/** Nombres visibles de las herramientas: lo que declar la API y el log. */
+export type NombreHerramienta = (typeof NOMBRES)[keyof typeof NOMBRES]
+
+/**
+ * Registro que consume el ciclo del agente (F3): cada herramienta con su nombre
+ * visible. Es el único sitio donde se empareja un nombre con una implementación,
+ * así que un nombre mal escrito no puede llegar al modelo.
+ */
+export function listarHerramientas(): { nombre: NombreHerramienta; herramienta: HerramientaGenerica }[] {
+  return [
+    { nombre: NOMBRES.leer_buzon, herramienta: leer_buzon },
+    { nombre: NOMBRES.extraer, herramienta: extraer },
+    { nombre: NOMBRES.validar, herramienta: validar },
+    { nombre: NOMBRES.registrar, herramienta: registrar },
+    { nombre: NOMBRES.alertas, herramienta: alertas },
+  ]
+}
 
 
 

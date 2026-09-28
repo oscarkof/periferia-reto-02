@@ -376,9 +376,10 @@ reto-02/                              raíz del repo y del entregable (.zip = es
 | `src/tools/contratos.ts` | F2 ✅ | Las cinco herramientas `contratos_*`, con `args` en zod y `execute` que devuelve string |
 | `src/tools/contexto.ts` | F2 ✅ | Lo común: construir el entorno desde `ctx`, cargar maestro y comerciales, leer el documento, registrar y **auditar** lo propuesto |
 | `src/tools/contrato.ts` | F2 ✅ | La forma de una herramienta (PRD §6.2) y los ayudantes de respuesta (`exito`, `fallo`, `responder`) |
-| `src/agent/loop.ts` · `paso.ts` · `confirmacion.ts` · `sesion.ts` · `eventos.ts` · `prompt.ts` | F3 | El ciclo, sus topes, la validación/auditoría, la confirmación humana y la sesión |
-| `src/llm/adapter.ts` · `ollama.ts` · `openai.ts` · `mock.ts` · `fabrica.ts` | F3 | La interfaz del PRD §6.1 y sus tres implementaciones |
-| `src/server.ts` + `src/server/{api,chat,estaticos}.ts` | F3 | Las rutas del PRD §6.4, el stream SSE y el front |
+| `src/agent/loop.ts` · `paso.ts` · `confirmacion.ts` · `sesion.ts` · `eventos.ts` · `prompt.ts` | F3 ✅ | El ciclo, sus topes, la validación/auditoría, la confirmación humana (RN5) y la sesión |
+| `src/llm/adapter.ts` · `ollama.ts` · `openai.ts` · `mock.ts` · `fabrica.ts` | F3 ✅ | La interfaz del PRD §6.1 y sus tres implementaciones |
+| `src/server.ts` + `src/server/{aplicacion,chat,estaticos,front,identificadores,memoria}.ts` | F3 ✅ | Las rutas del PRD §6.4, el stream SSE, el servicio de `out/` y el front estático cuando exista |
+| `agent/prompt.md` + `src/knowledge/registro-contratos.md` | F3 ✅ | Comportamiento y conocimiento del proceso, fuera del código (PRD §6.5) |
 | `web/{index.html,estilos.css,app.js,sse.js}` | F4 | El chat: historial, tarjetas de herramienta, banda de confirmación |
 | `demo.ts` + `src/demo/recorrido.ts` | F2 ✅ | Los 6 mensajes llamando a las herramientas, sin modelo ni claves |
 | `test/*` · `test-utils/*` | F1–F6 | Pruebas por capa; `test-utils` copia `out/` a un directorio temporal |
@@ -450,7 +451,7 @@ del reto 01, que es el que ya se sabe sostener.
 | **F0** ✅ | Setup: repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, este documento y `repo-setup.md`, README maestro | Árbol limpio, `git status` limpio, ignores verificados con `git add -A --dry-run` |
 | **F1** ✅ | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con 53 pruebas | **Cumplido:** `npm run typecheck` 0 errores y las seis suites de `core` en verde con los 6 mensajes del buzón y sus casos sintéticos |
 | **F2** ✅ | `src/tools/contratos.ts`, `src/tools/contexto.ts` y `demo.ts` + `src/demo/` | **Cumplido:** `npm run demo` imprime `6/6` clasificados (3 registrados, 1 duplicado, 1 en revisión, 1 sin escribir), la segunda pasada con `--confirmar` registra `msg-006` y volver a correrlo no duplica ni una fila (PRD §6.6) |
-| **F3** | `src/agent/`, `src/llm/`, `src/server*`, `agent/prompt.md`, `src/knowledge/` | El prompt del PRD §11 se ejecuta de verdad contra Ollama y `mock`; `api.test.ts` y `bucle.test.ts` en verde |
+| **F3** ✅ | `src/agent/`, `src/llm/`, `src/server*`, `agent/prompt.md`, `src/knowledge/` | **Cumplido:** el prompt del PRD §11 se ejecuta contra Ollama real (`granite4.1:8b`: `/api/health` responde con proveedor y modelo, y el modelo llama de verdad a `contratos_*` con la traza en `out/log.jsonl`) y contra `mock` (recorrido completo, determinista, en las pruebas); `bucle.test.ts` (9) y `api.test.ts` (6) en verde y `typecheck` sin errores. **Medido:** el turno completo del buzón contra el 8B local tarda minutos porque el historial crece en cada vuelta; por eso el prompt pide procesar mensaje a mensaje |
 | **F4** | `web/` | El recorrido de 5 minutos del README se puede hacer con ratón: tarjetas visibles y banda de confirmación funcionando |
 | **F5** | `Dockerfile`, `docker-compose.yml`, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | Un comando levanta todo; el link responde desde fuera; `SOLUCION.md` sin secciones vacías |
 | **F6** | `modulo/` (bonus) + `test/paridad-modulo.test.ts` | El test de paridad falla si las tres piezas se separan de la app |
