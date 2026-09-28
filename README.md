@@ -5,21 +5,45 @@
 > El agente registra, archiva y alerta. **Lo que no está claro lo confirma una persona.**
 
 Este README es el documento maestro del entregable: cómo levantarlo, **con qué está hecho y por qué**,
-cómo se eligió el modelo, **qué hace cada archivo del repositorio**, cómo se corre `demo.ts` y una guía
-para la sustentación. El detalle de diseño está en [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md)
+cómo se eligió el modelo, **qué hace cada archivo del repositorio**, cómo se corre `demo.ts` y qué queda
+fuera del alcance. El detalle de diseño está en [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md)
 y las decisiones de repositorio en [`solucion/docs/repo-setup.md`](solucion/docs/repo-setup.md).
+
+## Qué hace este agente
+
+Automatiza el **registro de los contratos vigentes** de Periferia IT Group: lee el buzón único de
+contratos, **extrae de cada documento los datos que importan** (partes, valor, plazo y póliza), decide si
+el mensaje es un contrato **nuevo**, un **otrosí** que actualiza uno existente, un **duplicado** o algo
+que **no es un contrato**, escribe la fila en el maestro y archiva el documento en una estructura tipo
+SharePoint. Además produce el **reporte de vencimientos y de pólizas pendientes**.
+
+**Escribe solo lo que está limpio**: si un campo es dudoso (confianza < 0,8) el agente **no adivina:
+pregunta**, y no registra hasta que una persona confirma. Y **no puede inventar un valor**: los datos del
+maestro salen del texto del documento por código determinista, cada campo con su evidencia y su confianza;
+el modelo conversa y pide herramientas, y lo que proponga se audita contra el documento. El resultado es el
+mismo con cualquier modelo o sin ninguno.
+
+## Cómo leer esta entrega
+
+| Documento | Qué cuenta |
+|---|---|
+| **`README.md`** (este) | Cómo levantarlo, con qué está hecho y por qué, el modelo elegido con sus mediciones, y **qué hace cada archivo** |
+| [`SOLUCION.md`](SOLUCION.md) | El planteamiento completo: arquitectura, ciclo del agente, estrategia de extracción, **regla de gobierno**, decisiones con la alternativa descartada, supuestos, cobertura y riesgos |
+| [`solucion/docs/`](solucion/docs/) | El detalle por tema: la arquitectura por dentro y la puesta en marcha del repositorio |
+| [`solucion/demo.ts`](solucion/demo.ts) | Los seis mensajes del buzón ejecutados sin modelo y sin claves |
+| [`PRD.md`](PRD.md) | El enunciado original de Periferia: la referencia de los números de sección que cita todo el código |
 
 | Quiero… | Sección |
 |---|---|
 | Levantarlo y verlo funcionando | [1. Arranque](#1-arranque-un-comando) |
 | Saber el stack y por qué cada pieza | [2. Stack](#2-stack-con-qué-está-hecho-y-por-qué) |
-| Entender la elección del modelo | [3. El modelo](#3-el-modelo-elección-mediciones-y-costo) |
+| Entender la elección del modelo, con números | [3. El modelo](#3-el-modelo-elección-mediciones-y-costo) |
 | Saber qué hace cada archivo | [4. Estructura](#4-estructura-del-repositorio-archivo-por-archivo) |
-| Correr la demo sin modelo | [5. `demo.ts`](#5-demots-las-herramientas-sin-modelo-f2) |
+| Ver las herramientas sin modelo | [5. `demo.ts`](#5-demots-las-herramientas-sin-modelo-f2) |
 | Correr las pruebas | [6. Pruebas](#6-pruebas-automáticas-f1-en-adelante) |
-| Configurar variables | [7. Variables de entorno](#7-variables-de-entorno) |
-| Preparar la defensa | [9. Guía para la sustentación](#9-guía-para-la-sustentación) |
-| Cómo está diseñado por dentro | [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md) |
+| Configurar el entorno | [7. Variables de entorno](#7-variables-de-entorno) |
+| Probar la aplicación en línea | [8. Link de prueba](#8-link-de-prueba) |
+| Saber qué quedó fuera del alcance | [9. Limitaciones](#9-qué-queda-fuera-limitaciones-declaradas) |
 
 ---
 
@@ -299,7 +323,7 @@ reto-02/                              ← raíz del repo y del entregable (.zip 
 | Archivo | Qué hace | Por qué existe | Fase |
 |---|---|---|---|
 | `PRD.md` | El enunciado del reto | Entregado por Periferia: es la referencia de los números de sección que se citan en todo el código y la documentación | ✔ |
-| `README.md` | Este documento maestro | **Un comando** para levantarlo (PRD §9.2), el stack, el mapa de archivos y la guía de sustentación | F0 ✅ |
+| `README.md` | Este documento maestro | **Un comando** para levantarlo (PRD §9.2), el stack, el mapa de archivos y qué queda fuera | F0 ✅ |
 | `SOLUCION.md` | Planteamiento completo: las 11 secciones del PRD §9.1 + la regla de gobierno de §7.5 | Es lo que evalúa «cómo pensaste», no solo qué corriste | F5 ✅ |
 | `docker-compose.yml` | Servicio con build, puerto, variables, volumen `out/` y `host.docker.internal` | Da el «un comando» del PRD §8 sin instalar Node | F5 ✅ |
 | `.dockerignore` | Excluye `node_modules`, `out/`, `.env`, `.git`, zips y `.DS_Store` | Evita que la imagen arrastre dependencias del host y secretos | F5 ✅ |
@@ -548,102 +572,7 @@ nombre del proveedor y hay una prueba que lo fija), así que un link público no
 
 ---
 
-## 9. Guía para la sustentación
-
-### 9.1 El discurso de 60 segundos
-
-> «Es un agente conversacional que se convierte en el **punto único de recepción de contratos**: lee el
-> buzón, extrae los datos del contrato, detecta si es nuevo, una actualización o un duplicado, archiva
-> el documento en una estructura tipo SharePoint y mantiene vivo el maestro —que hoy está congelado
-> desde mayo— y además produce el reporte de vencimientos y pólizas pendientes. Lo importante de cómo
-> está hecho: **el modelo conversa y pide herramientas, pero los valores del maestro y la clasificación
-> salen de código determinista**, así que no puede inventar un valor ni corromper el maestro. Cuando un
-> campo es dudoso, el sistema **no adivina: pregunta**, y solo escribe con la confirmación explícita del
-> usuario. Corre con un modelo local, sin claves ni coste por caso, se levanta con un comando y tiene
-> pruebas que incluyen ejecutar el front de verdad. Y como esto es tanto proceso como tecnología, el
-> entregable trae además la **regla de gobierno**: qué debe enviar el comercial, a dónde y qué pasa si
-> no lo hace.»
-
-### 9.2 El recorrido de 5 minutos (en este orden)
-
-| # | Qué hacer | Qué decir mientras |
-|---|---|---|
-| 1 | `cd reto-02/solucion && node demo.ts` | «Esto es el motor determinista, sin modelo ni claves. Seis mensajes: tres se registran, uno se actualiza, uno es duplicado, uno se rechaza y uno queda en revisión. Y es reproducible: limpia `out/` al empezar» |
-| 2 | `node demo.ts --confirmar` | «Aquí está el punto: `msg-006` no se registró porque su valor es indeterminado y su fecha es derivada. Con la confirmación explícita, se registra. **El humano es el que autoriza la escritura**» |
-| 3 | `LLM_PROVIDER=mock npm run dev` y abrir `http://127.0.0.1:3000` (o `docker compose up --build` desde `reto-02/`) | «La app completa sin descargar nada: pego el prompt del PRD §11 y aparecen las tarjetas de cada herramienta y la banda de confirmación. En Docker es el mismo comando único que pide el PRD» |
-| 4 | Con el modelo real | «Con `granite4.1:8b` el turno tarda decenas de segundos; por eso la respuesta llega por stream y el front muestra qué herramienta está llamando» |
-| 5 | `npm test` | «Las pruebas, en verde, sin modelo y sin red —incluida la del front ejecutándose» |
-| 6 | Abrir `out/sharepoint/` y `out/alertas.md` | «El maestro con la fila nueva y la actualizada, el contrato archivado en `Contratos/2026/…`, el `historial.jsonl` con el cambio del otrosí y el reporte de alertas» |
-| 7 | `git log --oneline` | «El historial cuenta la historia por fases: baseline, setup, motor, herramientas, agente, front, despliegue» |
-
-### 9.3 Las decisiones que debes poder defender
-
-| Decisión | En una frase | Alternativa descartada |
-|---|---|---|
-| La extracción es determinista | Los valores salen del texto por reglas; el modelo propone y la herramienta **audita** lo propuesto | Dejar que el modelo extraiga los campos y los devuelva como JSON |
-| La confirmación humana es código | Hay una acción pendiente por sesión y se consume con un «sí» explícito en el turno siguiente | Confiar en que el prompt pida confirmación |
-| Dedupe por `id_contrato` antes que por nombre | Es lo que evita el falso duplicado y lo que hace que el maestro no se corrompa | Comparar por nombre de cliente o por similitud de texto a secas |
-| El maestro se trabaja sobre una copia en `out/` | El fixture es de solo lectura; la copia se escribe de forma atómica | Escribir sobre el CSV del fixture o mantener el maestro solo en memoria |
-| Los fixtures se usan en su sitio | No se copian: dos copias divergen sin que nadie lo note | Duplicarlos dentro de `solucion/` |
-| Columnas propias + CSV propio | 16 columnas fijas y ~40 líneas con pruebas: una dependencia menos que justificar | `papaparse`, `csv-stringify` |
-| Front estático sin build | El PRD pide un comando y la pantalla tiene poco estado | React o Svelte con bundler |
-| `mock` de primera clase | Demo y pruebas sin claves, sin red y sin 5 GB | Depender siempre del modelo real |
-| `hoy` como argumento | Las alertas son reproducibles y comparables entre corridas | Leer el reloj del sistema |
-
-### 9.4 Preguntas probables, con la respuesta corta
-
-| Pregunta | Respuesta |
-|---|---|
-| ¿Cómo evitas que el modelo invente un valor? | Los valores salen de `src/core/extraccion.ts` sobre el texto del documento; `contratos_validar` **re-extrae y compara** con lo que propuso el modelo, y la discrepancia se convierte en `requiere_revision` en vez de registrarse (CA2). El modelo no es la fuente: la fuente es el contrato |
-| ¿Cómo evitas falsos duplicados? | El dedupe va por **`id_contrato`** primero; `nit_cliente` + similitud de objeto ≥ 0.9 solo *sospecha* actualización. El caso testigo es `msg-002`: mismo cliente y mismo RUC que `CT-2026-007`, pero otro contrato → `nuevo` |
-| ¿Por qué el umbral de confianza es 0.8? | Deja pasar lo que tiene **evidencia doble** (0.95–0.99: el valor en letras y en dígitos) y detiene lo **derivado** (0.7: fecha calculada de un plazo) y lo **ausente** (0–0.5). Con 0.9, el `requiere_poliza = false` detectado por ausencia de cláusula (0.85) bloquearía `msg-002` sin motivo |
-| ¿Cómo garantizas que no escribe sin permiso? | No depende del prompt: `paso.ts` fuerza `confirmado = false` y `contratos_registrar` se niega si hay `requiere_revision`. La confirmación solo vale **en el turno siguiente** y está atada a ese mensaje |
-| ¿Cómo proteges el maestro? | Se escribe sobre la **copia** en `out/` (el fixture es de solo lectura, RN6), con **escritura atómica** (`.tmp` + rename) y `procesados.json` para que dos ejecuciones no dupliquen; un duplicado no escribe nada (RN1) |
-| ¿Qué pasa si un mensaje viene mal? | Las herramientas **nunca lanzan**: devuelven `{ ok: false, error }` legible y el ciclo sigue con el siguiente mensaje (HU-6) |
-| ¿Por qué no haces OCR? | El PRD §3.2 lo excluye y los fixtures traen el texto extraído. `contratos_leer_pdf` (PDF con texto) queda como P1 |
-| ¿Qué haces con un remitente desconocido? | Se reporta como `comercial` sin resolver, **no bloquea** el registro (§5 HU-3) y queda en revisión para que administración lo asigne |
-| ¿Y si el otrosí cambia solo dos campos? | Los campos que el otrosí no menciona se **conservan** de la fila existente; `historial.jsonl` guarda el cambio y `diferencias` lo lista para el chat |
-| ¿Por qué hay contratos vencidos en el maestro? | Porque el proceso murió: son el hueco que este reporte hace visible. El agente no borra nada; el `alertas.md` los declara como contexto |
-| ¿Cuánto cuesta por caso? | Local: **0**. Con proveedor de pago: ≈ **0,005 USD/caso** (medición heredada del reto 01; se re-mide en F3) |
-| ¿Cómo evitas que alguien queme tu clave? | Topes por turno (25 iteraciones), por sesión (200 000 tokens) y timeout del proveedor de 3 minutos; la clave vive solo en el entorno y no se registra |
-| ¿Funciona sin internet? | Sí: `LLM_PROVIDER=mock` recorre toda la app con un guion y las pruebas no tocan la red. El modelo local tampoco la necesita tras la descarga |
-| ¿Qué es la regla de gobierno y por qué entra aquí? | Es el PRD §7.5: el problema es tanto de proceso como de técnica. Define **quién envía qué, a dónde, en qué plazo y con qué asunto**, el acuse automático, el escalamiento de excepciones, cómo se cierra el *gap* de junio–agosto y un indicador mensual (`% de contratos facturados que existen en el maestro`) |
-| ¿Cómo sé que el front no está roto si no hay navegador? | Hay un DOM mínimo en `test-utils/` que **carga `app.js` y recorre un turno completo**. Lo que no cubre es CSS ni pintado real, y está declarado en §10 |
-
-### 9.5 Números para saber de memoria
-
-| Dato | Valor |
-|---|---|
-| Mensajes del buzón | **6** (3 registrados · 1 actualizado · 1 duplicado · 1 rechazado · 1 en revisión) |
-| Herramientas del contrato | **5** (`leer_buzon`, `extraer`, `validar`, `registrar`, `alertas`) + 1 opcional P1 |
-| Umbral de revisión | confianza **< 0.8** |
-| Ventana de alertas | vencen en **≤ 60 días** · corte del maestro: **2026-05-30** |
-| Topes | **25** iteraciones por turno · **200 000** tokens por sesión · timeout **180 s** |
-| Contexto del prompt + esquemas | **5 735 tokens** medidos en este reto (una sola llamada, sin herramientas) → `num_ctx: 8192`; en el reto 01 eran 4 179 |
-| Tiempos medidos (este reto, Ollama local 8B al 100 % GPU) | primer turno con el modelo **frío ~32 s** · con el modelo cargado, un turno de una llamada **3,4 s** · llamadas siguientes **3–20 s** · el buzón completo **182,6 s y 12 llamadas** · la confirmación **78,5 s** y luego **28,4 s** · el mismo recorrido con `mock`, **~20 ms** |
-| Coste estimado | **0,005 USD/caso** con proveedor de pago · **0** en local |
-| Modelo | `granite4.1:8b` (Ollama, 5,3 GB, Apache 2.0) |
-| Pruebas | **96** en verde (F1–F5) · `typecheck` 0 errores · cero `any` |
-| Despliegue | `docker compose up --build` desde `reto-02/` · contenedor **healthy** · imagen `reto-02-agente-contratos` · `out/` montado en `solucion/out/` |
-
-### 9.6 Si te piden «enséñame el código»
-
-| Quieren ver… | Abre… |
-|---|---|
-| La extracción y el cálculo de confianza | `src/core/extraccion.ts` · `test/extraccion.test.ts` · `test/normalizacion.test.ts` |
-| La clasificación y el dedupe (RN1–RN4) | `src/core/clasificacion.ts` · `maestro.ts` · `test/clasificacion.test.ts` |
-| El contrato de herramientas | `src/tools/contratos.ts` · `test/herramientas.test.ts` |
-| La auditoría anti-alucinación | `src/tools/contexto.ts` · `test/auditoria.test.ts` |
-| El ciclo y sus topes | `src/agent/loop.ts` · `test/bucle.test.ts` |
-| Las reglas que el modelo no puede saltarse | `src/agent/paso.ts` · `confirmacion.ts` |
-| El maestro y su escritura segura | `src/core/csv.ts` · `maestro.ts` · `historial.ts` |
-| El stream que ve el front | `src/server/chat.ts` · `web/sse.js` |
-| El front | `web/app.js` (y `test/front-navegador.test.ts` para cómo se prueba) |
-| El empaquetado | `solucion/Dockerfile` · `docker-compose.yml` |
-
----
-
-## 10. Qué queda fuera (limitaciones declaradas)
+## 9. Qué queda fuera (limitaciones declaradas)
 
 1. **El link público no se publica, por decisión** (§8): se prueba en local durante la defensa, como admite
    el PRD §9.3, asumiendo el **−10**. El despliegue está validado (imagen y contenedor *healthy*) y las vías
