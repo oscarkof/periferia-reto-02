@@ -26,9 +26,12 @@ y las decisiones de repositorio en [`solucion/docs/repo-setup.md`](solucion/docs
 ## 0. Estado del entregable
 
 Este reto se construye por fases; el historial de commits las sigue una a una. Hoy el repositorio está
-en **F2 (herramientas)**: el motor determinista de `src/core/` más las cinco herramientas `contratos_*`
-y el recorrido `demo.ts`, con **69 pruebas en verde** y `typecheck` sin errores. **Todavía no hay agente
-ni front** (`src/agent/`, `src/llm/`, `web/`), y por eso los comandos de §1 se marcan según lo que ya
+en **F3 (agente, proveedores y API)**: el motor determinista de `src/core/`, las cinco herramientas
+`contratos_*` y el recorrido `demo.ts`, con encima **el ciclo del agente** —tres proveedores
+intercambiables (`ollama`, `openai`, `mock`), validación y auditoría de cada llamada, confirmación
+humana en el código— más la **API HTTP** con stream de eventos y el system prompt
+(`agent/prompt.md` + `src/knowledge/registro-contratos.md`). **84 pruebas en verde** y `typecheck` sin
+errores. **Falta el front de chat** (`web/`, F4), y por eso los comandos de §1 se marcan según lo que ya
 funciona.
 
 | Fase | Feature | Rama | Qué entrega | Estado |
@@ -36,8 +39,8 @@ funciona.
 | **F0** | `setup` | `main` | Repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, arquitectura y README | ✅ **hecho** |
 | **F1** | `core` | `main` | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con **53 pruebas** | ✅ **hecho** |
 | **F2** | `tools` | `f02-tools` | Las cinco herramientas `contratos_*` + `demo.ts` (los 6 mensajes sin modelo) | ✅ **hecho** |
-| **F3** | `agente-llm-api` | `f03-agente-llm` | Ciclo del agente, adaptadores de proveedor (ollama/openai/mock), API HTTP y system prompt | ⏳ siguiente |
-| **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | ⏳ |
+| **F3** | `agente-llm-api` | `f03-agente-llm-api` | Ciclo del agente, adaptadores de proveedor (ollama/openai/mock), API HTTP y system prompt | ✅ **hecho** |
+| **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | ⏳ siguiente |
 | **F5** | `deploy-solucion` | `f05-deploy` | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ |
 | **F6** | `modulo` (bonus) | `f06-modulo` | Agente empaquetado reutilizable + test de paridad con la app | ⏳ |
 
@@ -64,9 +67,9 @@ ya descargadas.
 |---|---|---|
 | `npm install` | ✅ funciona (75 paquetes, ~4 s) | — |
 | `npm run typecheck` | ✅ **0 errores**, cero `any` | — |
-| `npm test` | ✅ **69 pruebas**, sin modelo y sin red | F3→F6 (hasta ~120) |
+| `npm test` | ✅ **84 pruebas**, sin modelo y sin red | F4→F6 (hasta ~120) |
 | `npm run demo` | ✅ **`6/6` clasificados**: 3 registrados, 1 duplicado, 1 en revisión, 1 sin escribir | `--confirmar` para la segunda pasada |
-| `npm run dev` | — | F3 (API + ciclo) y F4 (front) |
+| `npm run dev` | ✅ **API + ciclo del agente** en `http://127.0.0.1:3000` (`LLM_PROVIDER=mock` no necesita nada instalado) | F4 (front de chat) |
 | `docker compose up --build` | — | F5 |
 | Leer la arquitectura ya decidida | ✅ | [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md) |
 | Ver el diseño del esquema y las reglas | ✅ | [§7 del PRD](PRD.md) y §6-§8 de la arquitectura |
@@ -165,7 +168,7 @@ una variable de entorno, no tocar el ciclo del agente.
 |---|---|
 | Costo | 0 por caso: corre en la máquina, sin claves ni cuotas |
 | Licencia | Apache 2.0 (IBM), sin restricciones de uso comercial |
-| *Tool calling* | **Verificado** de extremo a extremo en el reto 01 con el mismo contrato de herramientas, **incluido el turno de confirmación** |
+| *Tool calling* | **Verificado** en los dos retos con el mismo contrato de herramientas: en el reto 01, incluido el turno de confirmación; en este, con llamadas reales a `contratos_leer_buzon`, `contratos_extraer` y `contratos_validar` registradas en `out/log.jsonl` |
 | Tamaño | 5,3 GB cuantizado: cabe en 16 GB de RAM junto al sistema y el KV cache |
 | Dominio | Orientado a empresa (GRC, *compliance*) y con salida JSON estructurada, que es el formato del contrato |
 | Español | Entiende contratos redactados en español y responde en español sin instrucciones exóticas |
@@ -176,21 +179,30 @@ alternativa lista** (`openai.ts`), no como requisito.
 
 ### Mediciones
 
-Mientras este reto no tenga su propio instrumento, se apoya en lo **medido** en el reto 01 con el mismo
-proveedor y el mismo tipo de contrato (cinco herramientas con esquemas zod):
+**Medido en este reto** (28-09-2026, Ollama local: `granite4.1:8b`, 6,6 GB, **100 % GPU**, contexto
+8 192):
 
-| Qué | Medición heredada del reto 01 |
+| Qué | Medición |
 |---|---|
-| Prompt + esquemas de cinco herramientas | **4 179 tokens** → por eso la ventana por defecto de Ollama (4 096) no alcanza y se pide **8 192** (`OLLAMA_NUM_CTX`) |
-| Un turno con modelo local | **26–70 s** según lo que haga el turno · **66 s** dentro de un contenedor apuntando al modelo del host |
-| Tokens por turno | ≈ **14 500** |
-| Coste con proveedor de pago (0,15/0,60 USD por millón de tokens) | ≈ **0,005 USD/caso** |
+| Primera llamada del turno | **~32 s** (incluye procesar el prompt del sistema y los cinco esquemas) |
+| Llamadas siguientes del mismo turno | **3–20 s** cada una |
+| Turno completo del buzón (6 mensajes, con modelo) | **minutos**: el historial crece en cada vuelta, por eso el prompt pide procesar mensaje a mensaje |
+| El mismo recorrido con `mock` | **~20 ms**, sin red y determinista |
 | Coste con el modelo local | **0 USD** (la energía de la máquina) |
 
-**Lo que falta medir, y se mide en F3** cuando existan el prompt y el conocimiento de este reto: el
-tamaño exacto de `agent/prompt.md` + `src/knowledge/registro-contratos.md` + los esquemas, y el tiempo
-por turno procesando los seis mensajes del buzón. Esas cifras se **escriben cuando se midan**, no se
-estiman: la tabla de §9.5 solo tendrá números reales.
+**Heredado del reto 01** (mismo proveedor y mismo tipo de contrato: cinco herramientas con esquemas
+zod):
+
+| Qué | Medición heredada |
+|---|---|
+| Prompt + esquemas de cinco herramientas | **4 179 tokens** → por eso la ventana por defecto de Ollama (4 096) no alcanza y se pide **8 192** (`OLLAMA_NUM_CTX`) |
+| Tokens por turno | ≈ **14 500** |
+| Turno dentro de un contenedor apuntando al modelo del host | **66 s** |
+| Coste con proveedor de pago (0,15/0,60 USD por millón de tokens) | ≈ **0,005 USD/caso** |
+
+Queda **un** número por cerrar, y se anota cuando se mida (no se estima): el conteo exacto de tokens
+del prompt de **este** reto (`agent/prompt.md` + `src/knowledge/registro-contratos.md` + los cinco
+esquemas). Ollama lo devuelve en cada respuesta y la sesión lo acumula en `out/sessions/<id>.json`.
 
 ### Cómo se cambia de modelo (sin tocar código)
 
@@ -309,7 +321,7 @@ Es la razón de que el agente no pueda inventar un dato.
 | `contexto.ts` | Lo común a todas: construir el entorno desde `ctx.directory`, cargar maestro y comerciales, leer el documento, registrar la ejecución y **auditar** el contrato propuesto | Evita cinco copias de las mismas comprobaciones y concentra la auditoría anti-alucinación (CA2) y el log (RN7) | F2 ✅ |
 | `contrato.ts` | El contrato del PRD §6.2: `Herramienta<Esquema>` con `description` + `args` + `execute`, `exito`/`fallo`/`responder` y `ejecutarValidando` | Un solo sitio define cómo se declara una herramienta; es lo que en F3 usará el backend para ejecutarlas todas igual | F2 ✅ |
 
-### 4.5 `src/agent/`, `src/llm/` y `src/server*` · F3
+### 4.5 `src/agent/`, `src/llm/` y `src/server*` · F3 ✅
 
 | Archivo | Qué hace | Por qué existe |
 |---|---|---|
@@ -324,7 +336,7 @@ Es la razón de que el agente no pueda inventar un dato.
 | `llm/openai.ts` | Adaptador para cualquier API compatible con OpenAI | Demuestra la promesa del PRD: cambiar de proveedor es cambiar una variable |
 | `llm/mock.ts` | Adaptador de guion fijo, sin red | Permite enseñar la app y correr las pruebas sin claves, sin red y sin descargar 5 GB |
 | `llm/fabrica.ts` | Construye el adaptador según `LLM_PROVIDER` y **lee la clave del entorno** (nunca la registra) | Único punto donde se resuelve el proveedor: ahí vive la seguridad del PRD §8 |
-| `server.ts` + `server/{api,chat,estaticos}.ts` | `POST /api/chat`, `GET /api/sessions/:id`, `GET /api/health`, el stream SSE y el front estático | Un proceso, un puerto y cero CORS (PRD §6.4); las pruebas usan `inject()` para no abrir puerto |
+| `server.ts` + `server/{aplicacion,chat,estaticos,front,identificadores,memoria}.ts` | `POST /api/chat` (SSE o JSON con `?json=1`), `GET /api/sessions/:id`, `GET /api/health`, `GET /api/files/*` y el front estático cuando exista | Un proceso, un puerto y cero CORS (PRD §6.4); las pruebas usan `inject()` para no abrir puerto |
 
 ### 4.6 `web/`, `demo.ts`, `test/` y `out/`
 
@@ -420,14 +432,14 @@ npm run typecheck   # 0 errores
 | `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` y las tres secciones del reporte | ✅ 7 |
 | `herramientas.test.ts` | El contrato del PRD §6.2: string JSON en ambos caminos, **no lanza**, ids raros rechazados, **anti-alucinación (CA2)**, RN5 y RN7 | ✅ 10 |
 | `demo.test.ts` | El recorrido completo, la tabla del PRD §7.4, la segunda pasada con confirmación y la **idempotencia** | ✅ 5 |
-| `bucle.test.ts` | Topes (CA1), confirmación solo con un «sí» del turno anterior (CA3), proveedor que falla sin matar la sesión (CA5) | F3 |
-| `api.test.ts` | Las tres rutas del PRD §6.4 y que ninguna respuesta contenga la clave | F3 |
+| `bucle.test.ts` | El recorrido del PRD §11 en dos turnos, topes (CA1), confirmación solo con un «sí» del turno anterior (CA3 · RN5), anti-alucinación (CA2), duplicado que no escribe (RN1) y proveedor que falla sin matar la sesión (CA5) | ✅ 9 |
+| `api.test.ts` | Las cuatro rutas del PRD §6.4 con `inject()`: chat JSON y SSE, sesión que sobrevive entre peticiones, `out/` servido sin escapes y ninguna respuesta con la clave | ✅ 6 |
 | `front-navegador.test.ts` | `web/app.js` en un DOM mínimo: pintado, tarjetas y banda de confirmación | F4 |
 | `paridad-modulo.test.ts` | Que `modulo/` siga siendo **las mismas piezas** que usa la app | F6 |
 
-Estado: **69 pruebas en verde** (F1 + F2), `typecheck` con 0 errores y **cero `any`**. La meta al cerrar
-el reto es ~120, el mismo listón que se sostuvo en el reto 01. Las pruebas escriben en un `out/` temporal
-o usan `OUT_DIR`, así que **nunca** tocan el del repositorio.
+Estado: **84 pruebas en verde** (F1 + F2 + F3), `typecheck` con 0 errores y **cero `any`**. La meta al
+cerrar el reto es ~120, el mismo listón que se sostuvo en el reto 01. Las pruebas escriben en un `out/`
+temporal o usan `OUT_DIR`, así que **nunca** tocan el del repositorio.
 
 ---
 
@@ -551,10 +563,10 @@ LLM_PROVIDER=openai OPENAI_API_KEY=... npm run dev
 | Ventana de alertas | vencen en **≤ 60 días** · corte del maestro: **2026-05-30** |
 | Topes | **25** iteraciones por turno · **200 000** tokens por sesión · timeout **180 s** |
 | Contexto del prompt + esquemas | ≈ **4 179 tokens** (medido en el reto 01) → `num_ctx: 8192` |
-| Tiempos medidos | 26–70 s por turno · 66 s en contenedor (reto 01) |
+| Tiempos medidos (este reto, Ollama local 8B al 100 % GPU) | primera llamada del turno **~32 s** (incluye procesar el prompt) · siguientes **3–20 s** · el buzón completo, **minutos** (por eso el prompt pide mensaje a mensaje) · el mismo recorrido con `mock`, **~20 ms** |
 | Coste estimado | **0,005 USD/caso** con proveedor de pago · **0** en local |
 | Modelo | `granite4.1:8b` (Ollama, 5,3 GB, Apache 2.0) |
-| Pruebas | **53** en F1 (meta ~120 al cierre) · `typecheck` 0 errores · cero `any` |
+| Pruebas | **84** en verde (F1–F3, meta ~120 al cierre) · `typecheck` 0 errores · cero `any` |
 
 ### 9.6 Si te piden «enséñame el código»
 
