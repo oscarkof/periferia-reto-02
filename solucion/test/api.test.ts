@@ -217,3 +217,18 @@ test("las peticiones mal formadas se rechazan con 400 sin tumbar el servidor", a
   assert.equal(sano.statusCode, 200)
   assert.equal((sano.json() as { ok: boolean }).ok, true)
 })
+
+test("el backend sirve el front en la raíz: un proceso y un puerto (PRD §6.1)", async () => {
+  const { app } = await appDePrueba()
+
+  const portada = await app.inject({ method: "GET", url: "/" })
+  assert.equal(portada.statusCode, 200)
+  assert.match(String(portada.headers["content-type"]), /text\/html/)
+  assert.match(portada.body, /Agente de registro de contratos vigentes/)
+
+  for (const recurso of ["/app.js", "/sse.js", "/estilos.css"]) {
+    const respuesta = await app.inject({ method: "GET", url: recurso })
+    assert.equal(respuesta.statusCode, 200, `el front no sirve ${recurso}`)
+    assert.equal(respuesta.body.length > 0, true, `${recurso} llegó vacío`)
+  }
+})

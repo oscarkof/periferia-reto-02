@@ -73,7 +73,7 @@ export async function crearAplicacion(deps: Dependencias): Promise<FastifyInstan
   })
 
   app.get("/api/health", async () => {
-    const sesiones = listarSesiones(directorio)
+    const sesiones = listarSesiones()
     // El estado del buzón de un vistazo: cuántos mensajes hay y cuántos siguen
     // sin procesar. Se lee con las mismas funciones que usan las herramientas,
     // así que lo que dice `/api/health` es lo que verá `contratos_leer_buzon`.
@@ -103,12 +103,12 @@ export async function crearAplicacion(deps: Dependencias): Promise<FastifyInstan
   app.get<{ Params: { id: string } }>("/api/sessions/:id", async (peticion, reply) => {
     const { id } = peticion.params
     if (!idValido(id)) return reply.code(400).send({ ok: false, error: "identificador de sesión inválido" })
-    return { ok: true, data: obtenerSesion(directorio, id, memoria) }
+    return { ok: true, data: obtenerSesion(id, memoria) }
   })
 
   app.get<{ Params: { "*": string } }>("/api/files/*", async (peticion, reply) => {
     const partes = (peticion.params["*"] ?? "").split("/").filter((parte) => parte !== "")
-    const archivo = leerDeOut(directorio, partes)
+    const archivo = leerDeOut(partes)
     if (!archivo.ok) return reply.code(404).send({ ok: false, error: archivo.error })
     return reply
       .header("content-type", archivo.data.tipo)

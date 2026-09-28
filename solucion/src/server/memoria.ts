@@ -16,11 +16,11 @@ export function crearMemoria(): MemoriaSesiones {
 }
 
 /** Recupera la sesión: memoria → disco → nueva. */
-export function obtenerSesion(directorio: string, id: string, memoria: MemoriaSesiones): Sesion {
+export function obtenerSesion(id: string, memoria: MemoriaSesiones): Sesion {
   const enMemoria = memoria.get(id)
   if (enMemoria !== undefined) return enMemoria
 
-  const enDisco = cargarSesion(directorio, id)
+  const enDisco = cargarSesion(id)
   const sesion = enDisco.ok ? enDisco.data : crearSesion(id)
   memoria.set(id, sesion)
   return sesion

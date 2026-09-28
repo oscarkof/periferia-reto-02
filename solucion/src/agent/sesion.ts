@@ -7,7 +7,7 @@
  */
 import fs from "node:fs"
 import path from "node:path"
-import { resolverDentro } from "../core/rutas.ts"
+import { dirSesiones, resolverDentro } from "../core/rutas.ts"
 import type { Resultado } from "../core/tipos.ts"
 import type { Mensaje } from "../llm/adapter.ts"
 
@@ -57,18 +57,11 @@ export function crearSesion(id: string, ahora: Date = new Date()): Sesion {
   return { id, mensajes: [], pendiente: null, turnos: 0, tokens: 0, creada: marca, actualizada: marca }
 }
 
-/** Carpeta de sesiones: el `out/` de esta ejecución más `sessions`. */
-export function dirSesiones(directorio: string): string {
-  const outEnv = process.env["OUT_DIR"]
-  const out = outEnv !== undefined && outEnv.trim() !== "" ? path.resolve(outEnv) : path.join(directorio, "out")
-  return path.join(out, "sessions")
-}
-
-/** Persiste la sesión. Devuelve la ruta escrita. */
-export function guardarSesion(directorio: string, sesion: Sesion, ahora: Date = new Date()): Resultado<string> {
+/** Persiste la sesión en `out/sessions/` (misma base que el resto del motor). */
+export function guardarSesion(sesion: Sesion, ahora: Date = new Date()): Resultado<string> {
   if (!idValido(sesion.id)) return { ok: false, error: `identificador de sesión inválido: "${sesion.id}"` }
 
-  const destino = resolverDentro(dirSesiones(directorio), `${sesion.id}.json`)
+  const destino = resolverDentro(dirSesiones(), `${sesion.id}.json`)
   if (!destino.ok) return destino
 
   const conFecha: Sesion = { ...sesion, actualizada: ahora.toISOString() }
@@ -82,10 +75,10 @@ export function guardarSesion(directorio: string, sesion: Sesion, ahora: Date = 
 }
 
 /** Recupera una sesión del disco. */
-export function cargarSesion(directorio: string, id: string): Resultado<Sesion> {
+export function cargarSesion(id: string): Resultado<Sesion> {
   if (!idValido(id)) return { ok: false, error: `identificador de sesión inválido: "${id}"` }
 
-  const origen = resolverDentro(dirSesiones(directorio), `${id}.json`)
+  const origen = resolverDentro(dirSesiones(), `${id}.json`)
   if (!origen.ok) return origen
 
   let crudo: string
@@ -107,9 +100,9 @@ export function cargarSesion(directorio: string, id: string): Resultado<Sesion> 
 }
 
 /** Identificadores de sesión guardados, ordenados. */
-export function listarSesiones(directorio: string): Resultado<string[]> {
+export function listarSesiones(): Resultado<string[]> {
   try {
-    const archivos = fs.readdirSync(dirSesiones(directorio))
+    const archivos = fs.readdirSync(dirSesiones())
     return {
       ok: true,
       data: archivos

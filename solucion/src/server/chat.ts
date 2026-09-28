@@ -64,7 +64,7 @@ export function registrarChat(app: FastifyInstance, opciones: OpcionesChat): voi
     const id = solicitado === "" ? nuevoId() : solicitado
     if (!idValido(id)) return reply.code(400).send({ ok: false, error: "identificador de sesión inválido" })
 
-    const sesion: Sesion = obtenerSesion(directorio, id, memoria)
+    const sesion: Sesion = obtenerSesion(id, memoria)
     const eventos: EventoTurno[] = []
     const comunes = { directorio, sesion, mensajeUsuario: mensaje, adaptador, prompt, conocimiento }
 
