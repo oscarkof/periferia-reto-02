@@ -64,6 +64,30 @@ determinista** y nada se registra sin que se cumplan las reglas. El modelo no es
                                                sessions/<id>.json
 ```
 
+### 1.1 Diagrama navegable
+
+[`diagramas/arquitectura-reto02.html`](diagramas/arquitectura-reto02.html) es este mismo recorrido como HTML
+autocontenido: analista → front → API → ciclo del agente → herramientas → motor determinista, con el buzón,
+el maestro, la sesión, el *know-how* del agente y `out/` como almacenes. Se abre con doble clic (sin
+servidor ni dependencias), trae tema claro/oscuro y **cada nodo enlaza a la línea exacta que lo sostiene**
+—código o documento— en la revisión `0318fe4` del repositorio: el diagrama no puede quedarse descolgado del
+código sin que se note.
+
+Se generó con la skill **archify** sobre este repositorio y pasó sus cuatro gates automáticos (`validate`,
+`deliver`, `check` y `browser-check`, este último en un navegador real; los comprobantes quedan en
+`.archify/`, que no se versiona):
+
+```bash
+cd reto-02
+node ~/.claude/skills/archify/bin/archify.mjs finalize architecture \
+  .archify/architecture-reto02-<fecha>/candidate.json \
+  solucion/docs/diagramas/arquitectura-reto02.html --repo-root . --quality showcase
+```
+
+La herramienta deja un aviso **opcional** de forma: `herramientas→buzon` usa un codo más del sugerido
+porque sale del recuadro del proceso. Es un aviso de disposición, no de contenido, y se documenta en vez de
+esconderlo.
+
 ---
 
 ## 2. Capas: qué hace cada una y por qué está separada
