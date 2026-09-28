@@ -151,6 +151,11 @@ export interface ResultadoValidacion {
   diferencias: Diferencia[]
   /** Motivo del rechazo, cuando `clasificacion === "rechazado"` (RN4). */
   motivo_rechazo: string | null
+  /**
+   * Cosas que hay que contarle al usuario pero que **no bloquean** el registro
+   * (PRD §5 HU-3: «un remitente desconocido se reporta pero no bloquea»).
+   */
+  avisos: string[]
 }
 
 /** Una línea de `out/sharepoint/historial.jsonl` (HU-4 · O2). */

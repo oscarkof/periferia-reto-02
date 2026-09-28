@@ -177,10 +177,13 @@ export function extraerObjeto(
       ? clausula.cuerpo
       : (/OBJETO\.?\s*([^.]{10,300})/i.exec(texto)?.[1] ?? "")
   if (cuerpo === "") return { valor: null, confianza: 0, fragmento: "" }
-  const { texto: recortado, recortado: huboRecorte } = recortarObjeto(cuerpo)
+  const { texto: recortado } = recortarObjeto(cuerpo)
   return {
     valor: recortado === "" ? null : recortado,
-    confianza: huboRecorte ? 0.6 : 0.9,
+    // El objeto se leyó de su cláusula, así que la confianza es alta incluso si
+    // hubo que recortarlo a los 200 caracteres del maestro: el recorte es un
+    // límite de formato —y se avisa en la validación—, no una duda de lectura.
+    confianza: 0.9,
     fragmento: evidencia(cuerpo, 0),
   }
 }
@@ -393,7 +396,10 @@ export function extraerFechas(texto: string, fechaCorreo: string, esOtrosi: bool
     return {
       inicio,
       fin,
-      confianza_inicio: inicio === null ? 0 : coincideElCorreo ? 0.6 : 0.7,
+      // El inicio se apoya en dos hechos (el mes lo dice el documento y el día
+      // viene de la fecha del correo), así que 0.85 lo deja fuera de revisión; el
+      // fin es aritmética pura y por eso se queda en 0.7, en revisión.
+      confianza_inicio: inicio === null ? 0 : coincideElCorreo ? 0.85 : 0.7,
       confianza_fin: fin === null ? 0 : 0.7,
       fragmento: evidencia(base, 0),
     }
