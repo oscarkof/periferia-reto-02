@@ -1,0 +1,25 @@
+# El contexto de build es esta carpeta (`reto-02/`, ver docker-compose.yml), así
+# que aquí se deja fuera todo lo que no debe viajar en la imagen: dependencias
+# del host, salidas generadas, secretos y basura del sistema.
+#
+# `solucion/out` se excluye a propósito: la imagen crea su propio `out/` (el
+# compose lo monta sobre el del host) y no tiene sentido arrastrar un maestro o
+# unas alertas de una corrida anterior.
+#
+# `fixtures/` SÍ entra: es lo que entregó Periferia y la app los lee en su sitio
+# (`../fixtures/reto-02`), en modo solo lectura (RN6).
+
+**/node_modules
+**/out
+**/out/**
+
+# Secretos: `.env` nunca entra. `.env.example` sí, porque es documentación.
+**/.env
+**/.env.*
+!**/.env.example
+
+.git
+.gitignore
+**/.DS_Store
+**/*.log
+*.zip

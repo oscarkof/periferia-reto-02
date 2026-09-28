@@ -5,34 +5,59 @@
 > El agente registra, archiva y alerta. **Lo que no está claro lo confirma una persona.**
 
 Este README es el documento maestro del entregable: cómo levantarlo, **con qué está hecho y por qué**,
-cómo se eligió el modelo, **qué hace cada archivo del repositorio**, cómo se corre `demo.ts` y una guía
-para la sustentación. El detalle de diseño está en [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md)
+cómo se eligió el modelo, **qué hace cada archivo del repositorio**, cómo se corre `demo.ts` y qué queda
+fuera del alcance. El detalle de diseño está en [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md)
 y las decisiones de repositorio en [`solucion/docs/repo-setup.md`](solucion/docs/repo-setup.md).
+
+## Qué hace este agente
+
+Automatiza el **registro de los contratos vigentes** de Periferia IT Group: lee el buzón único de
+contratos, **extrae de cada documento los datos que importan** (partes, valor, plazo y póliza), decide si
+el mensaje es un contrato **nuevo**, un **otrosí** que actualiza uno existente, un **duplicado** o algo
+que **no es un contrato**, escribe la fila en el maestro y archiva el documento en una estructura tipo
+SharePoint. Además produce el **reporte de vencimientos y de pólizas pendientes**.
+
+**Escribe solo lo que está limpio**: si un campo es dudoso (confianza < 0,8) el agente **no adivina:
+pregunta**, y no registra hasta que una persona confirma. Y **no puede inventar un valor**: los datos del
+maestro salen del texto del documento por código determinista, cada campo con su evidencia y su confianza;
+el modelo conversa y pide herramientas, y lo que proponga se audita contra el documento. El resultado es el
+mismo con cualquier modelo o sin ninguno.
+
+## Cómo leer esta entrega
+
+| Documento | Qué cuenta |
+|---|---|
+| **`README.md`** (este) | Cómo levantarlo, con qué está hecho y por qué, el modelo elegido con sus mediciones, y **qué hace cada archivo** |
+| [`SOLUCION.md`](SOLUCION.md) | El planteamiento completo: arquitectura, ciclo del agente, estrategia de extracción, **regla de gobierno**, decisiones con la alternativa descartada, supuestos, cobertura y riesgos |
+| [`solucion/docs/`](solucion/docs/) | El detalle por tema: la arquitectura por dentro y la puesta en marcha del repositorio |
+| [`solucion/demo.ts`](solucion/demo.ts) | Los seis mensajes del buzón ejecutados sin modelo y sin claves |
+| [`PRD.md`](PRD.md) | El enunciado original de Periferia: la referencia de los números de sección que cita todo el código |
 
 | Quiero… | Sección |
 |---|---|
 | Levantarlo y verlo funcionando | [1. Arranque](#1-arranque-un-comando) |
 | Saber el stack y por qué cada pieza | [2. Stack](#2-stack-con-qué-está-hecho-y-por-qué) |
-| Entender la elección del modelo | [3. El modelo](#3-el-modelo-elección-mediciones-y-costo) |
+| Entender la elección del modelo, con números | [3. El modelo](#3-el-modelo-elección-mediciones-y-costo) |
 | Saber qué hace cada archivo | [4. Estructura](#4-estructura-del-repositorio-archivo-por-archivo) |
-| Correr la demo sin modelo | [5. `demo.ts`](#5-demots-las-herramientas-sin-modelo-f2) |
+| Ver las herramientas sin modelo | [5. `demo.ts`](#5-demots-las-herramientas-sin-modelo-f2) |
 | Correr las pruebas | [6. Pruebas](#6-pruebas-automáticas-f1-en-adelante) |
-| Configurar variables | [7. Variables de entorno](#7-variables-de-entorno) |
-| Preparar la defensa | [9. Guía para la sustentación](#9-guía-para-la-sustentación) |
-| Cómo está diseñado por dentro | [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md) |
+| Configurar el entorno | [7. Variables de entorno](#7-variables-de-entorno) |
+| Probar la aplicación en línea | [8. Link de prueba](#8-link-de-prueba) |
+| Saber qué quedó fuera del alcance | [9. Limitaciones](#9-qué-queda-fuera-limitaciones-declaradas) |
 
 ---
 
 ## 0. Estado del entregable
 
 Este reto se construye por fases; el historial de commits las sigue una a una. Hoy el repositorio está
-en **F4 (front de chat)**: el motor determinista de `src/core/`, las cinco herramientas `contratos_*` y
-el recorrido `demo.ts`, con encima **el ciclo del agente** —tres proveedores intercambiables (`ollama`,
+en **F5 (despliegue y `SOLUCION.md`)**: el motor determinista de `src/core/`, las cinco herramientas
+`contratos_*`, el recorrido `demo.ts`, **el ciclo del agente** —tres proveedores intercambiables (`ollama`,
 `openai`, `mock`), validación y auditoría de cada llamada, confirmación humana en el código—, la **API
-HTTP** con stream de eventos, el system prompt (`agent/prompt.md` + `src/knowledge/registro-contratos.md`)
-y el **front** que muestra cada llamada a herramienta y resalta cuándo falta confirmación. **93 pruebas
-en verde y `typecheck` sin errores.** Faltan el despliegue y `SOLUCION.md` (F5) y el módulo reutilizable
-(F6); los comandos de §1 se marcan según lo que ya funciona.
+HTTP** con stream de eventos, el **front** de chat y, encima, **`docker compose up --build`** validado
+(contenedor *healthy*) y **`SOLUCION.md`** con las 11 secciones del PRD §9.1 y la regla de gobierno de
+§7.5. **96 pruebas en verde y `typecheck` sin errores.** El link se prueba en local por **decisión**
+(§8 · −10 asumido del PRD §9.3); solo falta el módulo reutilizable (F6). Los comandos de §1 se marcan según
+lo que ya funciona.
 
 | Fase | Feature | Rama | Qué entrega | Estado |
 |---|---|---|---|---|
@@ -41,7 +66,7 @@ en verde y `typecheck` sin errores.** Faltan el despliegue y `SOLUCION.md` (F5) 
 | **F2** | `tools` | `f02-tools` | Las cinco herramientas `contratos_*` + `demo.ts` (los 6 mensajes sin modelo) | ✅ **hecho** |
 | **F3** | `agente-llm-api` | `f03-agente-llm-api` | Ciclo del agente, adaptadores de proveedor (ollama/openai/mock), API HTTP y system prompt | ✅ **hecho** |
 | **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | ✅ **hecho** |
-| **F5** | `deploy-solucion` | `f05-deploy` | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ siguiente |
+| **F5** | `deploy-solucion` | `f05-deploy` | Docker (`Dockerfile`, `docker-compose.yml`, `.dockerignore`), `SOLUCION.md` (11 secciones + regla de gobierno) y publicación del link | ✅ **hecho** (el link se prueba en local, por decisión: §8) |
 | **F6** | `modulo` (bonus) | `f06-modulo` | Agente empaquetado reutilizable + test de paridad con la app | ⏳ |
 
 Cada fase es **una feature con nombre propio**, y ese nombre es el mismo de la rama y del mensaje de
@@ -52,14 +77,24 @@ copiar, está en [`solucion/docs/repo-setup.md`](solucion/docs/repo-setup.md) §
 
 ## 1. Arranque (un comando)
 
+**La vía rápida, sin instalar nada** (Docker; es la del PRD §8):
+
+```bash
+cd reto-02
+docker compose up --build     # front + API en http://127.0.0.1:3000
+```
+
+**En local**, si prefieres Node:
+
 ```bash
 cd reto-02/solucion
 npm install
 npm run dev          # front de chat + API en http://127.0.0.1:3000
 ```
 
-Eso levanta las dos piezas (el backend sirve el front) y tarda menos de un minuto con las dependencias
-ya descargadas.
+Las dos levantan las dos piezas (el backend sirve el front) y tardan menos de un minuto con las
+dependencias ya descargadas. El contenedor trae un `HEALTHCHECK` sobre `/api/health`, así que
+`docker compose ps` dice si está *healthy* sin adivinar.
 
 ### Qué funciona hoy (F0) y qué llega con cada fase
 
@@ -67,18 +102,33 @@ ya descargadas.
 |---|---|---|
 | `npm install` | ✅ funciona (75 paquetes, ~4 s) | — |
 | `npm run typecheck` | ✅ **0 errores**, cero `any` | — |
-| `npm test` | ✅ **93 pruebas**, sin modelo y sin red | F5→F6 (hasta ~120) |
+| `npm test` | ✅ **96 pruebas**, sin modelo y sin red | F6 (hasta ~120) |
 | `npm run demo` | ✅ **`6/6` clasificados**: 3 registrados, 1 duplicado, 1 en revisión, 1 sin escribir | `--confirmar` para la segunda pasada |
-| `npm run dev` | ✅ **front + API + ciclo del agente** en `http://127.0.0.1:3000` (`LLM_PROVIDER=mock` no necesita nada instalado) | Docker en F5 |
-| `docker compose up --build` | — | F5 |
+| `npm run dev` | ✅ **front + API + ciclo del agente** en `http://127.0.0.1:3000` (`LLM_PROVIDER=mock` no necesita nada instalado) | — |
+| `docker compose up --build` | ✅ **validado**: imagen `reto-02-agente-contratos`, contenedor *healthy*, front y API desde el contenedor, `out/` escribiéndose en el host | — |
 | Leer la arquitectura ya decidida | ✅ | [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md) |
 | Ver el diseño del esquema y las reglas | ✅ | [§7 del PRD](PRD.md) y §6-§8 de la arquitectura |
 
-### Con Docker, sin instalar Node ni dependencias (F5)
+### Con Docker, sin instalar Node ni dependencias (F5 ✅)
 
 ```bash
 cd reto-02
 docker compose up --build     # lo mismo, en http://127.0.0.1:3000
+LLM_PROVIDER=mock docker compose up --build   # sin modelo, demo instantánea
+```
+
+La imagen es **`node:24-alpine` sin paso de build**: el front es estático y Node ejecuta TypeScript
+directamente, así que solo se instalan dependencias de producción (`npm ci --omit=dev`, 71 paquetes) y se
+copian `solucion/` y `fixtures/`. Corre como usuario `node`, escucha en `0.0.0.0` y `out/` está montado
+sobre `solucion/out/` para que veas en tu carpeta el maestro, los contratos archivados y `log.jsonl`.
+
+Para una demo desde cero (el `out/` del host recuerda la corrida anterior, y eso hace que el buzón
+aparezca como ya procesado):
+
+```bash
+docker compose down
+rm -rf solucion/out/sharepoint solucion/out/sessions solucion/out/procesados.json solucion/out/log.jsonl solucion/out/alertas.md
+docker compose up --build
 ```
 
 ### Para que el agente responda de verdad hace falta un modelo
@@ -184,9 +234,10 @@ alternativa lista** (`openai.ts`), no como requisito.
 
 | Qué | Medición |
 |---|---|
-| Primera llamada del turno | **~32 s** (incluye procesar el prompt del sistema y los cinco esquemas) |
+| Primera llamada del turno | **~32 s** con el modelo frío (incluye cargarlo y procesar el prompt del sistema con los cinco esquemas); con el modelo ya cargado, un turno de una sola llamada tardó **3,4 s** |
 | Llamadas siguientes del mismo turno | **3–20 s** cada una |
-| Turno completo del buzón (6 mensajes, con modelo) | **minutos**: el historial crece en cada vuelta, por eso el prompt pide procesar mensaje a mensaje |
+| Turno completo del buzón (6 mensajes, modelo real) | **182,6 s · 12 llamadas** de herramienta: registró `CT-2026-015`, `CT-2026-016` y el otrosí (que actualiza `CT-2026-011`), reportó el duplicado y el rechazado y **pidió confirmación** por `msg-006` |
+| Turno de confirmación («sí, confirmo») | **78,5 s** el primero (registra `msg-006`) y **28,4 s** un segundo «sí», que ya no escribe nada |
 | El mismo recorrido con `mock` | **~20 ms**, sin red y determinista |
 | Coste con el modelo local | **0 USD** (la energía de la máquina) |
 
@@ -195,14 +246,16 @@ zod):
 
 | Qué | Medición heredada |
 |---|---|
-| Prompt + esquemas de cinco herramientas | **4 179 tokens** → por eso la ventana por defecto de Ollama (4 096) no alcanza y se pide **8 192** (`OLLAMA_NUM_CTX`) |
-| Tokens por turno | ≈ **14 500** |
 | Turno dentro de un contenedor apuntando al modelo del host | **66 s** |
 | Coste con proveedor de pago (0,15/0,60 USD por millón de tokens) | ≈ **0,005 USD/caso** |
 
-Queda **un** número por cerrar, y se anota cuando se mida (no se estima): el conteo exacto de tokens
-del prompt de **este** reto (`agent/prompt.md` + `src/knowledge/registro-contratos.md` + los cinco
-esquemas). Ollama lo devuelve en cada respuesta y la sesión lo acumula en `out/sessions/<id>.json`.
+**El contexto que viaja en cada llamada**: `agent/prompt.md` + `src/knowledge/registro-contratos.md` +
+los cinco esquemas JSON = **5 735 tokens medidos** en este reto. La medición es directa: un turno trivial
+(«hola») que **no ejecuta ninguna herramienta** hace una sola llamada al modelo y deja `tokens: 5735` en
+`out/sessions/<id>.json`. Es más que los 4 179 tokens del reto 01 (allí el conocimiento era más corto) y
+sigue cabiendo en **8 192**, que es la ventana que se pide en `OLLAMA_NUM_CTX`: con la de por defecto
+(4 096) Ollama rechaza la petición. Sumado al historial de un turno largo, explica los ≈14 500 tokens por
+turno que se usan para estimar el coste.
 
 ### Cómo se cambia de modelo (sin tocar código)
 
@@ -270,10 +323,10 @@ reto-02/                              ← raíz del repo y del entregable (.zip 
 | Archivo | Qué hace | Por qué existe | Fase |
 |---|---|---|---|
 | `PRD.md` | El enunciado del reto | Entregado por Periferia: es la referencia de los números de sección que se citan en todo el código y la documentación | ✔ |
-| `README.md` | Este documento maestro | **Un comando** para levantarlo (PRD §9.2), el stack, el mapa de archivos y la guía de sustentación | F0 ✅ |
-| `SOLUCION.md` | Planteamiento completo: las 11 secciones del PRD §9.1 + la regla de gobierno de §7.5 | Es lo que evalúa «cómo pensaste», no solo qué corriste | F5 |
-| `docker-compose.yml` | Servicio con build, puerto, variables, volumen `out/` y `host.docker.internal` | Da el «un comando» del PRD §8 sin instalar Node | F5 |
-| `.dockerignore` | Excluye `node_modules`, `out/`, `.env`, `.git`, zips y `.DS_Store` | Evita que la imagen arrastre dependencias del host y secretos | F5 |
+| `README.md` | Este documento maestro | **Un comando** para levantarlo (PRD §9.2), el stack, el mapa de archivos y qué queda fuera | F0 ✅ |
+| `SOLUCION.md` | Planteamiento completo: las 11 secciones del PRD §9.1 + la regla de gobierno de §7.5 | Es lo que evalúa «cómo pensaste», no solo qué corriste | F5 ✅ |
+| `docker-compose.yml` | Servicio con build, puerto, variables, volumen `out/` y `host.docker.internal` | Da el «un comando» del PRD §8 sin instalar Node | F5 ✅ |
+| `.dockerignore` | Excluye `node_modules`, `out/`, `.env`, `.git`, zips y `.DS_Store` | Evita que la imagen arrastre dependencias del host y secretos | F5 ✅ |
 | `.gitignore` | Secretos, dependencias, `out/*`, `*.jsonl`, cachés, basura de SO/IDE, tooling de agentes, `*.zip` | Que el repo sea entregable: el PRD §9.5 prohíbe `node_modules`, `out` y `.env` | F0 ✅ |
 | `fixtures/reto-02/**` | El buzón de 6 mensajes, el maestro congelado al 2026-05-30 y los comerciales | Datos del cliente: **no se modifican** y no se copian dentro de la app (§12 de la arquitectura, decisión 3) | ✔ |
 
@@ -282,6 +335,7 @@ reto-02/                              ← raíz del repo y del entregable (.zip 
 | Archivo | Qué hace | Por qué existe | Fase |
 |---|---|---|---|
 | `.env.example` | Las 16 variables con su explicación y sus valores por defecto | Documentación ejecutable de la configuración; `.env` está ignorado | F0 ✅ |
+| `Dockerfile` | `node:24-alpine`, sin paso de build: `npm ci --omit=dev`, copia `solucion/` y `fixtures/`, usuario `node`, `HEALTHCHECK` y `CMD node src/server.ts` | El contexto es la raíz del reto porque la app lee los fixtures en `../fixtures/reto-02`; la imagen es autocontenida | F5 ✅ |
 | `.gitignore` | Lo mínimo para que esta carpeta se pueda reutilizar como base de otro reto | Portabilidad: no arrastra basura de este reto | F0 ✅ |
 | `docs/arquitectura.md` | El diseño completo: capas, contrato de herramientas, flujo por mensaje, extracción y confianza, clasificación, `out/`, alertas, decisiones y plan de pruebas | Es el contrato de lo que se construye; evita decidir sobre la marcha | F0 ✅ |
 | `docs/repo-setup.md` | Cómo está armado el repositorio: ignores con su porqué, los dos commits de F0, convención de commits, checklist de seguridad y plan del entregable | Que las decisiones de entrega estén escritas y no en la cabeza de nadie | F0 ✅ |
@@ -418,28 +472,29 @@ compararlo (PRD §8 · Determinismo).
 
 ```bash
 cd reto-02/solucion
-npm test            # ~120 pruebas previstas, 0 fallos (sin modelo y sin red)
+npm test            # 96 pruebas, 0 fallos (sin modelo y sin red, en menos de 1 s)
 npm run typecheck   # 0 errores
 ```
 
 | Suite | Qué fija | Estado |
 |---|---|---|
 | `csv.test.ts` | Comillas, comas y saltos dentro de un campo; la escritura atómica no deja el archivo a medias | ✅ 11 |
-| `normalizacion.test.ts` | Numerales en español, fechas ordinales, importes locales/ingleses, monedas, NIT/RUC → país, slugs y similitud | ✅ 13 |
+| `normalizacion.test.ts` | Numerales en español, fechas ordinales, importes locales/ingleses, monedas, NIT/RUC → país, slugs y similitud | ✅ 12 |
 | `entrada.test.ts` | El buzón (6 mensajes, contrato vs otrosí vs cotización) y RN6: el fixture se copia a `out/` intacto | ✅ 6 |
 | `extraccion.test.ts` | **Casos dorados**: los seis documentos, campo por campo, con su confianza y su evidencia | ✅ 7 |
-| `clasificacion.test.ts` | RN1–RN5 sobre los seis mensajes y casos sintéticos (objeto idéntico con número nuevo, otrosí de contrato desconocido, número automático) | ✅ 9 |
+| `clasificacion.test.ts` | RN1–RN5 sobre los seis mensajes y casos sintéticos (objeto idéntico con número nuevo, otrosí de contrato desconocido, número automático) | ✅ 10 |
 | `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` y las tres secciones del reporte | ✅ 7 |
-| `herramientas.test.ts` | El contrato del PRD §6.2: string JSON en ambos caminos, **no lanza**, ids raros rechazados, **anti-alucinación (CA2)**, RN5 y RN7 | ✅ 10 |
+| `herramientas.test.ts` | El contrato del PRD §6.2: string JSON en ambos caminos, **no lanza**, ids raros rechazados, **anti-alucinación (CA2)**, RN5 y RN7 | ✅ 11 |
 | `demo.test.ts` | El recorrido completo, la tabla del PRD §7.4, la segunda pasada con confirmación y la **idempotencia** | ✅ 5 |
-| `bucle.test.ts` | El recorrido del PRD §11 en dos turnos, topes (CA1), confirmación solo con un «sí» del turno anterior (CA3 · RN5), anti-alucinación (CA2), duplicado que no escribe (RN1), proveedor que falla sin matar la sesión (CA5) y la detección de la confirmación con la puntuación que escribe una persona | ✅ 10 |
+| `bucle.test.ts` | El recorrido del PRD §11 en dos turnos, topes (CA1), confirmación solo con un «sí» del turno anterior (CA3 · RN5), anti-alucinación (CA2), duplicado que no escribe (RN1), proveedor que falla sin matar la sesión (CA5) y la detección de la confirmación con la puntuación que escribe una persona (**incluidas las tres de regresión del `mock`**) | ✅ 13 |
 | `api.test.ts` | Las cuatro rutas del PRD §6.4 con `inject()`: chat JSON y SSE, sesión que sobrevive entre peticiones, `out/` servido sin escapes, el front servido en la raíz y ninguna respuesta con la clave | ✅ 7 |
 | `front-navegador.test.ts` | `web/app.js` ejecutándose en un DOM mínimo contra el backend real: arranque, un turno completo con sus cinco tarjetas, la banda de confirmación, el botón «Sí, confirmo» que **registra en el maestro**, el envío por clic, el mensaje vacío y el fallo de red | ✅ 7 |
 | `paridad-modulo.test.ts` | Que `modulo/` siga siendo **las mismas piezas** que usa la app | F6 |
 
-Estado: **93 pruebas en verde** (F1 + F2 + F3 + F4), `typecheck` con 0 errores y **cero `any`**. La meta
-al cerrar el reto es ~120, el mismo listón que se sostuvo en el reto 01. Las pruebas escriben en un `out/`
-temporal o usan `OUT_DIR`, así que **nunca** tocan el del repositorio.
+Estado: **96 pruebas en verde** (F1 + F2 + F3 + F4 + F5), `typecheck` con 0 errores y **cero `any`**; el
+desglose de arriba suma 96. La meta al cerrar el reto es ~120, el mismo listón que se sostuvo en el reto 01.
+Las pruebas escriben en un `out/` temporal o usan `OUT_DIR`, así que **nunca** tocan el del repositorio
+(F5 solo añadió documentación y el `Dockerfile`, por eso no cambian las pruebas).
 
 ---
 
@@ -484,111 +539,44 @@ LLM_PROVIDER=openai OPENAI_API_KEY=... npm run dev
 
 ## 8. Link de prueba
 
-> **Pendiente de publicar (F5).** Se dejará activo durante la defensa. Mientras tanto, la aplicación se
-> levanta en local con el comando de §1 (el PRD §9.3 admite esa modalidad con −10).
+> **Decisión: se prueba en local durante la defensa.** El PRD §9.3 admite esa modalidad y asume el **−10**.
+> Lo que sí está hecho y verificado es el despliegue: `docker compose up --build` construye la imagen y el
+> contenedor arranca *healthy* (§1), así que lo único que falta para tener URL pública es el extremo, y
+> abajo quedan las vías con sus comandos por si se decide activarlo (son tres minutos).
 
-**Clave de acceso:** no aplica; el link será público y no expone ninguna clave de modelo.
+**Cómo se prueba entonces:** un comando de §1 y `http://127.0.0.1:3000`. Para enseñarlo rápido, con
+`LLM_PROVIDER=mock` el turno responde en ~20 ms; con Ollama real el turno del buzón tarda ~3 minutos, y el
+front va mostrando cada herramienta mientras ocurre.
 
----
+| Vía, si se decide publicar | Cómo | A favor | En contra |
+|---|---|---|---|
+| **Túnel a esta máquina** (Cloudflare Tunnel o ngrok) | `docker compose up -d` y luego el túnel apuntando a `http://127.0.0.1:3000` | Es lo único que deja el **modelo local** funcionando por el link: el agente llama a Ollama en la máquina, no en el contenedor | El link vive mientras la máquina esté encendida y la URL gratuita cambia al reiniciar el túnel |
+| **Render / Railway / Fly.io** | Desplegar la imagen del `Dockerfile` | Link permanente, sin depender del portátil | Sin GPU no hay modelo local: hay que poner `LLM_PROVIDER=openai` + clave, o enseñar el `mock` |
+| **Azure** (Container Apps o App Service) | Igual, con la imagen en un *registry* | Es la nube que un cliente corporativo ya tiene contratada | Es la vía más lenta de montar para una demo de 5 minutos |
+| **VPS con Ollama incluido** | `docker compose up` en el VPS | Modelo local y una sola máquina que mantener | La CPU de un VPS pequeño da más latencia que un portátil con GPU (y el turno ya tarda 3 minutos en local) |
 
-## 9. Guía para la sustentación
+**Cómo se activaría el túnel** (la vía que conserva el modelo real):
 
-### 9.1 El discurso de 60 segundos
+```bash
+brew install cloudflared                     # no está instalado en esta máquina
+cd reto-02 && docker compose up -d           # el agente, en http://127.0.0.1:3000
+cloudflared tunnel --url http://127.0.0.1:3000
+# imprime una URL https://…trycloudflare.com — esa sería la del entregable
+```
 
-> «Es un agente conversacional que se convierte en el **punto único de recepción de contratos**: lee el
-> buzón, extrae los datos del contrato, detecta si es nuevo, una actualización o un duplicado, archiva
-> el documento en una estructura tipo SharePoint y mantiene vivo el maestro —que hoy está congelado
-> desde mayo— y además produce el reporte de vencimientos y pólizas pendientes. Lo importante de cómo
-> está hecho: **el modelo conversa y pide herramientas, pero los valores del maestro y la clasificación
-> salen de código determinista**, así que no puede inventar un valor ni corromper el maestro. Cuando un
-> campo es dudoso, el sistema **no adivina: pregunta**, y solo escribe con la confirmación explícita del
-> usuario. Corre con un modelo local, sin claves ni coste por caso, se levanta con un comando y tiene
-> pruebas que incluyen ejecutar el front de verdad. Y como esto es tanto proceso como tecnología, el
-> entregable trae además la **regla de gobierno**: qué debe enviar el comercial, a dónde y qué pasa si
-> no lo hace.»
+Para que el link fuera **estable** (misma URL siempre) haría falta un túnel con nombre y un dominio en
+Cloudflare; con la cuenta gratuita se puede, y el comando queda `cloudflared tunnel run reto-02`.
 
-### 9.2 El recorrido de 5 minutos (en este orden)
-
-| # | Qué hacer | Qué decir mientras |
-|---|---|---|
-| 1 | `cd reto-02/solucion && node demo.ts` | «Esto es el motor determinista, sin modelo ni claves. Seis mensajes: tres se registran, uno se actualiza, uno es duplicado, uno se rechaza y uno queda en revisión. Y es reproducible: limpia `out/` al empezar» |
-| 2 | `node demo.ts --confirmar` | «Aquí está el punto: `msg-006` no se registró porque su valor es indeterminado y su fecha es derivada. Con la confirmación explícita, se registra. **El humano es el que autoriza la escritura**» |
-| 3 | `LLM_PROVIDER=mock npm run dev` y abrir `http://127.0.0.1:3000` | «La app completa sin descargar nada: pego el prompt del PRD §11 y aparecen las tarjetas de cada herramienta y la banda de confirmación» |
-| 4 | Con el modelo real | «Con `granite4.1:8b` el turno tarda decenas de segundos; por eso la respuesta llega por stream y el front muestra qué herramienta está llamando» |
-| 5 | `npm test` | «Las pruebas, en verde, sin modelo y sin red —incluida la del front ejecutándose» |
-| 6 | Abrir `out/sharepoint/` y `out/alertas.md` | «El maestro con la fila nueva y la actualizada, el contrato archivado en `Contratos/2026/…`, el `historial.jsonl` con el cambio del otrosí y el reporte de alertas» |
-| 7 | `git log --oneline` | «El historial cuenta la historia por fases: baseline, setup, motor, herramientas, agente, front, despliegue» |
-
-### 9.3 Las decisiones que debes poder defender
-
-| Decisión | En una frase | Alternativa descartada |
-|---|---|---|
-| La extracción es determinista | Los valores salen del texto por reglas; el modelo propone y la herramienta **audita** lo propuesto | Dejar que el modelo extraiga los campos y los devuelva como JSON |
-| La confirmación humana es código | Hay una acción pendiente por sesión y se consume con un «sí» explícito en el turno siguiente | Confiar en que el prompt pida confirmación |
-| Dedupe por `id_contrato` antes que por nombre | Es lo que evita el falso duplicado y lo que hace que el maestro no se corrompa | Comparar por nombre de cliente o por similitud de texto a secas |
-| El maestro se trabaja sobre una copia en `out/` | El fixture es de solo lectura; la copia se escribe de forma atómica | Escribir sobre el CSV del fixture o mantener el maestro solo en memoria |
-| Los fixtures se usan en su sitio | No se copian: dos copias divergen sin que nadie lo note | Duplicarlos dentro de `solucion/` |
-| Columnas propias + CSV propio | 16 columnas fijas y ~40 líneas con pruebas: una dependencia menos que justificar | `papaparse`, `csv-stringify` |
-| Front estático sin build | El PRD pide un comando y la pantalla tiene poco estado | React o Svelte con bundler |
-| `mock` de primera clase | Demo y pruebas sin claves, sin red y sin 5 GB | Depender siempre del modelo real |
-| `hoy` como argumento | Las alertas son reproducibles y comparables entre corridas | Leer el reloj del sistema |
-
-### 9.4 Preguntas probables, con la respuesta corta
-
-| Pregunta | Respuesta |
-|---|---|
-| ¿Cómo evitas que el modelo invente un valor? | Los valores salen de `src/core/extraccion.ts` sobre el texto del documento; `contratos_validar` **re-extrae y compara** con lo que propuso el modelo, y la discrepancia se convierte en `requiere_revision` en vez de registrarse (CA2). El modelo no es la fuente: la fuente es el contrato |
-| ¿Cómo evitas falsos duplicados? | El dedupe va por **`id_contrato`** primero; `nit_cliente` + similitud de objeto ≥ 0.9 solo *sospecha* actualización. El caso testigo es `msg-002`: mismo cliente y mismo RUC que `CT-2026-007`, pero otro contrato → `nuevo` |
-| ¿Por qué el umbral de confianza es 0.8? | Deja pasar lo que tiene **evidencia doble** (0.95–0.99: el valor en letras y en dígitos) y detiene lo **derivado** (0.7: fecha calculada de un plazo) y lo **ausente** (0–0.5). Con 0.9, el `requiere_poliza = false` detectado por ausencia de cláusula (0.85) bloquearía `msg-002` sin motivo |
-| ¿Cómo garantizas que no escribe sin permiso? | No depende del prompt: `paso.ts` fuerza `confirmado = false` y `contratos_registrar` se niega si hay `requiere_revision`. La confirmación solo vale **en el turno siguiente** y está atada a ese mensaje |
-| ¿Cómo proteges el maestro? | Se escribe sobre la **copia** en `out/` (el fixture es de solo lectura, RN6), con **escritura atómica** (`.tmp` + rename) y `procesados.json` para que dos ejecuciones no dupliquen; un duplicado no escribe nada (RN1) |
-| ¿Qué pasa si un mensaje viene mal? | Las herramientas **nunca lanzan**: devuelven `{ ok: false, error }` legible y el ciclo sigue con el siguiente mensaje (HU-6) |
-| ¿Por qué no haces OCR? | El PRD §3.2 lo excluye y los fixtures traen el texto extraído. `contratos_leer_pdf` (PDF con texto) queda como P1 |
-| ¿Qué haces con un remitente desconocido? | Se reporta como `comercial` sin resolver, **no bloquea** el registro (§5 HU-3) y queda en revisión para que administración lo asigne |
-| ¿Y si el otrosí cambia solo dos campos? | Los campos que el otrosí no menciona se **conservan** de la fila existente; `historial.jsonl` guarda el cambio y `diferencias` lo lista para el chat |
-| ¿Por qué hay contratos vencidos en el maestro? | Porque el proceso murió: son el hueco que este reporte hace visible. El agente no borra nada; el `alertas.md` los declara como contexto |
-| ¿Cuánto cuesta por caso? | Local: **0**. Con proveedor de pago: ≈ **0,005 USD/caso** (medición heredada del reto 01; se re-mide en F3) |
-| ¿Cómo evitas que alguien queme tu clave? | Topes por turno (25 iteraciones), por sesión (200 000 tokens) y timeout del proveedor de 3 minutos; la clave vive solo en el entorno y no se registra |
-| ¿Funciona sin internet? | Sí: `LLM_PROVIDER=mock` recorre toda la app con un guion y las pruebas no tocan la red. El modelo local tampoco la necesita tras la descarga |
-| ¿Qué es la regla de gobierno y por qué entra aquí? | Es el PRD §7.5: el problema es tanto de proceso como de técnica. Define **quién envía qué, a dónde, en qué plazo y con qué asunto**, el acuse automático, el escalamiento de excepciones, cómo se cierra el *gap* de junio–agosto y un indicador mensual (`% de contratos facturados que existen en el maestro`) |
-| ¿Cómo sé que el front no está roto si no hay navegador? | Hay un DOM mínimo en `test-utils/` que **carga `app.js` y recorre un turno completo**. Lo que no cubre es CSS ni pintado real, y está declarado en §10 |
-
-### 9.5 Números para saber de memoria
-
-| Dato | Valor |
-|---|---|
-| Mensajes del buzón | **6** (3 registrados · 1 actualizado · 1 duplicado · 1 rechazado · 1 en revisión) |
-| Herramientas del contrato | **5** (`leer_buzon`, `extraer`, `validar`, `registrar`, `alertas`) + 1 opcional P1 |
-| Umbral de revisión | confianza **< 0.8** |
-| Ventana de alertas | vencen en **≤ 60 días** · corte del maestro: **2026-05-30** |
-| Topes | **25** iteraciones por turno · **200 000** tokens por sesión · timeout **180 s** |
-| Contexto del prompt + esquemas | ≈ **4 179 tokens** (medido en el reto 01) → `num_ctx: 8192` |
-| Tiempos medidos (este reto, Ollama local 8B al 100 % GPU) | primera llamada del turno **~32 s** (incluye procesar el prompt) · siguientes **3–20 s** · el buzón completo, **minutos** (por eso el prompt pide mensaje a mensaje) · el mismo recorrido con `mock`, **~20 ms** |
-| Coste estimado | **0,005 USD/caso** con proveedor de pago · **0** en local |
-| Modelo | `granite4.1:8b` (Ollama, 5,3 GB, Apache 2.0) |
-| Pruebas | **93** en verde (F1–F4, meta ~120 al cierre) · `typecheck` 0 errores · cero `any` |
-
-### 9.6 Si te piden «enséñame el código»
-
-| Quieren ver… | Abre… |
-|---|---|
-| La extracción y el cálculo de confianza | `src/core/extraccion.ts` · `test/extraccion.test.ts` · `test/normalizacion.test.ts` |
-| La clasificación y el dedupe (RN1–RN4) | `src/core/clasificacion.ts` · `maestro.ts` · `test/clasificacion.test.ts` |
-| El contrato de herramientas | `src/tools/contratos.ts` · `test/herramientas.test.ts` |
-| La auditoría anti-alucinación | `src/tools/contexto.ts` · `test/auditoria.test.ts` |
-| El ciclo y sus topes | `src/agent/loop.ts` · `test/bucle.test.ts` |
-| Las reglas que el modelo no puede saltarse | `src/agent/paso.ts` · `confirmacion.ts` |
-| El maestro y su escritura segura | `src/core/csv.ts` · `maestro.ts` · `historial.ts` |
-| El stream que ve el front | `src/server/chat.ts` · `web/sse.js` |
-| El front | `web/app.js` (y `test/front-navegador.test.ts` para cómo se prueba) |
-| El empaquetado | `solucion/Dockerfile` · `docker-compose.yml` |
+**Clave de acceso:** no aplica. El backend no expone ninguna clave de modelo (`/api/health` solo dice el
+nombre del proveedor y hay una prueba que lo fija), así que un link público no filtraría credenciales.
 
 ---
 
-## 10. Qué queda fuera (limitaciones declaradas)
+## 9. Qué queda fuera (limitaciones declaradas)
 
-1. **El link público está pendiente de publicar** (§8): llega en F5. El PRD §9.3 acepta probarlo en
-   local durante la defensa, con −10.
+1. **El link público no se publica, por decisión** (§8): se prueba en local durante la defensa, como admite
+   el PRD §9.3, asumiendo el **−10**. El despliegue está validado (imagen y contenedor *healthy*) y las vías
+   para publicarlo, documentadas con sus comandos: activarlo son tres minutos si se cambia de idea.
 2. **Sin OCR y sin PDF escaneado**: el PRD §3.2 lo excluye. Los fixtures traen el texto del contrato ya
    en `.txt`; `contratos_leer_pdf` (PDF con texto) queda como P1 opcional.
 3. **No hay conexión real a Exchange ni a SharePoint**: se simulan con carpetas locales, como autoriza el

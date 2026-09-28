@@ -1,13 +1,14 @@
 # Arquitectura del agente — Reto 02 «Registro de Contratos Vigentes»
 
 > Periferia IT Group · Equipo Perxia 2.0
-> **Estado:** diseño cerrado en F0 (setup). El código llega en F1–F4; si algún detalle cambia al
+> **Estado:** diseño cerrado en F0 (setup) e implementado en F1–F5. Si algún detalle cambia al
 > implementarlo, se corrige aquí en el mismo commit. Lo que describe este documento es lo que se
 > construye, no una idea suelta.
 
 Este documento responde a la pregunta «¿cómo está armado y por qué así?». El
-[`README`](../../README.md) cuenta *qué es y cómo se usa*; `SOLUCION.md` —que llega en F5— contará *cómo
-se pensó*, con la cobertura y los riesgos. El estado de cada fase está en la §0 del README.
+[`README`](../../README.md) cuenta *qué es y cómo se usa*; [`SOLUCION.md`](../../SOLUCION.md) cuenta *cómo
+se pensó*, con la cobertura y los riesgos (las 11 secciones del PRD §9.1). El estado de cada fase está en
+la §0 del README.
 
 ---
 
@@ -324,15 +325,16 @@ Cada archivo con su fase: **F0** es lo que ya existe (setup), y el resto es el p
 reto-02/                              raíz del repo y del entregable (.zip = esta carpeta)
 ├── PRD.md                            entregado por Periferia (no se toca)
 ├── README.md                         F0 · documento maestro
-├── SOLUCION.md                       F5 · las 11 secciones del PRD §9.1 + regla de gobierno
-├── docker-compose.yml                F5 · `docker compose up --build`
-├── .dockerignore                     F5 · qué no entra en la imagen
+├── SOLUCION.md                       F5 ✅ · las 11 secciones del PRD §9.1 + regla de gobierno
+├── docker-compose.yml                F5 ✅ · `docker compose up --build`
+├── .dockerignore                     F5 ✅ · qué no entra en la imagen
 ├── .gitignore                        F0 · reglas de todo el árbol
 ├── fixtures/reto-02/                 entregado · 14 archivos (buzón, maestro, comerciales)
 └── solucion/                         la aplicación
     ├── .env.example                  F0 · las 16 variables documentadas
     ├── .gitignore                    F0 · portabilidad de esta carpeta
     ├── docs/                         F0 · arquitectura.md y repo-setup.md
+    ├── Dockerfile                    F5 ✅ · node:24-alpine, sin build, HEALTHCHECK y usuario `node`
     ├── package.json · tsconfig.json  F1 · stack y contrato de calidad
     ├── demo.ts                       F2 ✅ · los 6 mensajes sin modelo (PRD §6.6)
     ├── agent/prompt.md               F3 · comportamiento del agente
@@ -437,7 +439,7 @@ del reto 01, que es el que ya se sabe sostener.
 | Numerales o formatos que la extracción no entiende | La confianza baja a 0 y el campo entra en revisión con la evidencia; el humano confirma y el patrón se agrega con su prueba |
 | Un mensaje roto tumba el lote (HU-6) | Las herramientas nunca lanzan: devuelven `{ ok: false, error }` y el ciclo continúa con el siguiente mensaje |
 | Escribir mal el maestro y dejarlo a medias | Copia en `out/` (nunca el fixture), escritura atómica y `procesados.json` para no reprocesar |
-| El contexto del prompt no cabe (medido en el reto 01: >4 000 tokens solo en prompt + esquemas) | `OLLAMA_NUM_CTX=8192` y medición en F3; si el conocimiento crece mucho, el prompt lo resume y el resto se consulta por herramienta |
+| El contexto del prompt no cabe (medido en **este** reto: **5 735 tokens** solo en prompt + esquemas) | `OLLAMA_NUM_CTX=8192` (con la ventana por defecto, 4 096, Ollama rechaza la petición); si el conocimiento crece mucho, el prompt lo resume y el resto se consulta por herramienta |
 | PDFs escaneados (sin texto) | Fuera de alcance declarado (PRD §3.2): los fixtures traen `.txt`; `contratos_leer_pdf` es P1 y solo para PDF con texto |
 | Fuga de la clave del modelo | Se lee solo de `process.env` en `llm/fabrica.ts`; no se registra ni se devuelve por la API; `.env` ignorado y checklist de seguridad en `docs/repo-setup.md` |
 | Dos procesos escribiendo el maestro a la vez | Fuera de alcance (sin base de datos, un solo proceso); la escritura atómica evita el archivo corrupto. Queda como límite declarado |
@@ -451,8 +453,8 @@ del reto 01, que es el que ya se sabe sostener.
 | **F0** ✅ | Setup: repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, este documento y `repo-setup.md`, README maestro | Árbol limpio, `git status` limpio, ignores verificados con `git add -A --dry-run` |
 | **F1** ✅ | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con 53 pruebas | **Cumplido:** `npm run typecheck` 0 errores y las seis suites de `core` en verde con los 6 mensajes del buzón y sus casos sintéticos |
 | **F2** ✅ | `src/tools/contratos.ts`, `src/tools/contexto.ts` y `demo.ts` + `src/demo/` | **Cumplido:** `npm run demo` imprime `6/6` clasificados (3 registrados, 1 duplicado, 1 en revisión, 1 sin escribir), la segunda pasada con `--confirmar` registra `msg-006` y volver a correrlo no duplica ni una fila (PRD §6.6) |
-| **F3** ✅ | `src/agent/`, `src/llm/`, `src/server*`, `agent/prompt.md`, `src/knowledge/` | **Cumplido:** el prompt del PRD §11 se ejecuta contra Ollama real (`granite4.1:8b`: `/api/health` responde con proveedor y modelo, y el modelo llama de verdad a `contratos_*` con la traza en `out/log.jsonl`) y contra `mock` (recorrido completo, determinista, en las pruebas); `bucle.test.ts` (9) y `api.test.ts` (6) en verde y `typecheck` sin errores. **Medido:** el turno completo del buzón contra el 8B local tarda minutos porque el historial crece en cada vuelta; por eso el prompt pide procesar mensaje a mensaje |
+| **F3** ✅ | `src/agent/`, `src/llm/`, `src/server*`, `agent/prompt.md`, `src/knowledge/` | **Cumplido:** el prompt del PRD §11 se ejecuta contra Ollama real (`granite4.1:8b`: `/api/health` responde con proveedor y modelo, y el modelo llama de verdad a `contratos_*` con la traza en `out/log.jsonl`) y contra `mock` (recorrido completo, determinista, en las pruebas); `bucle.test.ts` (13) y `api.test.ts` (7) en verde y `typecheck` sin errores. **Medido:** el turno completo del buzón contra el 8B local tardó **182,6 s en 12 llamadas** de herramienta (registró los dos contratos nuevos y el otrosí, reportó el duplicado y el rechazado y pidió confirmación por `msg-006`); por eso el prompt pide procesar mensaje a mensaje |
 | **F4** ✅ | `web/` | **Cumplido:** el recorrido de 5 minutos del README se puede hacer con ratón —cada llamada a `contratos_*` aparece como tarjeta con su resumen, la banda de confirmación se resalta (RN5) y lo generado se descarga desde el panel— y `front-navegador.test.ts` ejecuta `web/app.js` de verdad en un DOM mínimo contra el backend con `inject()` (7 pruebas) |
-| **F5** | `Dockerfile`, `docker-compose.yml`, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | Un comando levanta todo; el link responde desde fuera; `SOLUCION.md` sin secciones vacías |
+| **F5** ✅ | `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `SOLUCION.md` (11 secciones + regla de gobierno) y publicación del link | **Cumplido** el despliegue: `docker compose up --build` construye la imagen `reto-02-agente-contratos` (71 paquetes de producción), el contenedor queda **healthy** (HEALTHCHECK sobre `/api/health`), el front y la API responden desde el contenedor y `out/` se escribe en `solucion/out/` del host; `SOLUCION.md` completo, sin secciones vacías. **Decisión:** el link no se publica y la prueba se hace en local durante la defensa (PRD §9.3, −10 asumido), con las vías documentadas en el README §8 |
 | **F6** | `modulo/` (bonus) + `test/paridad-modulo.test.ts` | El test de paridad falla si las tres piezas se separan de la app |
 
