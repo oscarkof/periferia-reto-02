@@ -377,7 +377,7 @@ reto-02/                              raíz del repo y del entregable (.zip = es
 | `src/tools/contexto.ts` | F2 ✅ | Lo común: construir el entorno desde `ctx`, cargar maestro y comerciales, leer el documento, registrar y **auditar** lo propuesto |
 | `src/tools/contrato.ts` | F2 ✅ | La forma de una herramienta (PRD §6.2) y los ayudantes de respuesta (`exito`, `fallo`, `responder`) |
 | `src/agent/loop.ts` · `paso.ts` · `confirmacion.ts` · `sesion.ts` · `eventos.ts` · `prompt.ts` | F3 ✅ | El ciclo, sus topes, la validación/auditoría, la confirmación humana (RN5) y la sesión |
-| `src/llm/adapter.ts` · `ollama.ts` · `openai.ts` · `mock.ts` · `fabrica.ts` | F3 ✅ | La interfaz del PRD §6.1 y sus tres implementaciones |
+| `src/llm/adapter.ts` · `ollama.ts` · `openai.ts` · `mock.ts` · `fabrica.ts` | F3 ✅ | La interfaz del PRD §6.1 y sus tres implementaciones; el `mock` sirve dos guiones: el secuencial de las pruebas y el **reactivo** (lee la conversación) que usa la aplicación servida |
 | `src/server.ts` + `src/server/{aplicacion,chat,estaticos,front,identificadores,memoria}.ts` | F3 ✅ | Las rutas del PRD §6.4, el stream SSE, el servicio de `out/` y el front estático cuando exista |
 | `agent/prompt.md` + `src/knowledge/registro-contratos.md` | F3 ✅ | Comportamiento y conocimiento del proceso, fuera del código (PRD §6.5) |
 | `web/{index.html,estilos.css,app.js,sse.js}` | F4 ✅ | El chat: historial, tarjetas de herramienta, banda de confirmación, panel del buzón y enlaces a lo generado |

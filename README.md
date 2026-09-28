@@ -334,7 +334,7 @@ Es la razón de que el agente no pueda inventar un dato.
 | `llm/adapter.ts` | La interfaz `enviar(mensajes, herramientas) → respuesta` y `definirHerramienta` (zod → JSON Schema) | Es lo que permite cambiar de proveedor sin tocar el ciclo (PRD §6.1) |
 | `llm/ollama.ts` | Adaptador de Ollama: pide `num_ctx`, manda `think` solo si se pide y **normaliza los argumentos** (objeto o string JSON) | Es el proveedor del entregable; los tres detalles salieron de medir en el reto 01, no de suponer |
 | `llm/openai.ts` | Adaptador para cualquier API compatible con OpenAI | Demuestra la promesa del PRD: cambiar de proveedor es cambiar una variable |
-| `llm/mock.ts` | Adaptador de guion fijo, sin red | Permite enseñar la app y correr las pruebas sin claves, sin red y sin descargar 5 GB |
+| `llm/mock.ts` | Adaptador de guion, sin red: una política fija que **lee la conversación** (`guionReactivo`) o una lista de pasos (`guionDemo`) | Permite enseñar la app y correr las pruebas sin claves, sin red y sin descargar 5 GB; el guion reactivo evita que la demo se desalinee al recargar o al confirmar dos veces |
 | `llm/fabrica.ts` | Construye el adaptador según `LLM_PROVIDER` y **lee la clave del entorno** (nunca la registra) | Único punto donde se resuelve el proveedor: ahí vive la seguridad del PRD §8 |
 | `server.ts` + `server/{aplicacion,chat,estaticos,front,identificadores,memoria}.ts` | `POST /api/chat` (SSE o JSON con `?json=1`), `GET /api/sessions/:id`, `GET /api/health`, `GET /api/files/*` y el front estático cuando exista | Un proceso, un puerto y cero CORS (PRD §6.4); las pruebas usan `inject()` para no abrir puerto |
 
@@ -610,3 +610,9 @@ LLM_PROVIDER=openai OPENAI_API_KEY=... npm run dev
    real no lo detecta la suite; el siguiente nivel sería Playwright.
 10. **No hay reintentos ni cola**: si el proveedor falla, el turno devuelve un error legible y la sesión
     sigue; para volumen alto haría falta cola y reintentos con *backoff*.
+11. **El proveedor `mock` es un guion, no un modelo**: repite una política fija (leer el buzón, registrar
+    `msg-001`, validar `msg-006` y preguntar por él) para poder enseñar la app sin instalar nada. Desde F4
+    **lee la conversación** en vez de contar llamadas al adaptador, así que responde bien al «sí, confirmo»
+    aunque se recargue la página, haya dos sesiones abiertas o se pulse varias veces: antes no lo hacía
+    —llevaba un contador global— y ese fallo apareció en la primera prueba manual del front. No entiende
+    nada más: con `mock` no se puede pedir otro caso que los fixtures, y para eso está `LLM_PROVIDER=ollama`.
