@@ -26,13 +26,13 @@ y las decisiones de repositorio en [`solucion/docs/repo-setup.md`](solucion/docs
 ## 0. Estado del entregable
 
 Este reto se construye por fases; el historial de commits las sigue una a una. Hoy el repositorio está
-en **F3 (agente, proveedores y API)**: el motor determinista de `src/core/`, las cinco herramientas
-`contratos_*` y el recorrido `demo.ts`, con encima **el ciclo del agente** —tres proveedores
-intercambiables (`ollama`, `openai`, `mock`), validación y auditoría de cada llamada, confirmación
-humana en el código— más la **API HTTP** con stream de eventos y el system prompt
-(`agent/prompt.md` + `src/knowledge/registro-contratos.md`). **84 pruebas en verde** y `typecheck` sin
-errores. **Falta el front de chat** (`web/`, F4), y por eso los comandos de §1 se marcan según lo que ya
-funciona.
+en **F4 (front de chat)**: el motor determinista de `src/core/`, las cinco herramientas `contratos_*` y
+el recorrido `demo.ts`, con encima **el ciclo del agente** —tres proveedores intercambiables (`ollama`,
+`openai`, `mock`), validación y auditoría de cada llamada, confirmación humana en el código—, la **API
+HTTP** con stream de eventos, el system prompt (`agent/prompt.md` + `src/knowledge/registro-contratos.md`)
+y el **front** que muestra cada llamada a herramienta y resalta cuándo falta confirmación. **93 pruebas
+en verde y `typecheck` sin errores.** Faltan el despliegue y `SOLUCION.md` (F5) y el módulo reutilizable
+(F6); los comandos de §1 se marcan según lo que ya funciona.
 
 | Fase | Feature | Rama | Qué entrega | Estado |
 |---|---|---|---|---|
@@ -40,8 +40,8 @@ funciona.
 | **F1** | `core` | `main` | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con **53 pruebas** | ✅ **hecho** |
 | **F2** | `tools` | `f02-tools` | Las cinco herramientas `contratos_*` + `demo.ts` (los 6 mensajes sin modelo) | ✅ **hecho** |
 | **F3** | `agente-llm-api` | `f03-agente-llm-api` | Ciclo del agente, adaptadores de proveedor (ollama/openai/mock), API HTTP y system prompt | ✅ **hecho** |
-| **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | ⏳ siguiente |
-| **F5** | `deploy-solucion` | `f05-deploy` | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ |
+| **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | ✅ **hecho** |
+| **F5** | `deploy-solucion` | `f05-deploy` | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ siguiente |
 | **F6** | `modulo` (bonus) | `f06-modulo` | Agente empaquetado reutilizable + test de paridad con la app | ⏳ |
 
 Cada fase es **una feature con nombre propio**, y ese nombre es el mismo de la rama y del mensaje de
@@ -67,9 +67,9 @@ ya descargadas.
 |---|---|---|
 | `npm install` | ✅ funciona (75 paquetes, ~4 s) | — |
 | `npm run typecheck` | ✅ **0 errores**, cero `any` | — |
-| `npm test` | ✅ **84 pruebas**, sin modelo y sin red | F4→F6 (hasta ~120) |
+| `npm test` | ✅ **93 pruebas**, sin modelo y sin red | F5→F6 (hasta ~120) |
 | `npm run demo` | ✅ **`6/6` clasificados**: 3 registrados, 1 duplicado, 1 en revisión, 1 sin escribir | `--confirmar` para la segunda pasada |
-| `npm run dev` | ✅ **API + ciclo del agente** en `http://127.0.0.1:3000` (`LLM_PROVIDER=mock` no necesita nada instalado) | F4 (front de chat) |
+| `npm run dev` | ✅ **front + API + ciclo del agente** en `http://127.0.0.1:3000` (`LLM_PROVIDER=mock` no necesita nada instalado) | Docker en F5 |
 | `docker compose up --build` | — | F5 |
 | Leer la arquitectura ya decidida | ✅ | [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md) |
 | Ver el diseño del esquema y las reglas | ✅ | [§7 del PRD](PRD.md) y §6-§8 de la arquitectura |
@@ -342,7 +342,7 @@ Es la razón de que el agente no pueda inventar un dato.
 
 | Archivo | Qué hace | Por qué existe | Fase |
 |---|---|---|---|
-| `web/index.html`, `estilos.css`, `app.js`, `sse.js` | El chat: historial, campo de entrada, «pensando», **tarjeta por cada llamada a herramienta** y banda de confirmación resaltada | El PRD §6.1 obliga a **mostrar** las llamadas y el estado de confirmación: es parte de la evaluación, no decoración | F4 |
+| `web/index.html`, `estilos.css`, `app.js`, `sse.js` | El chat: historial, campo de entrada, «pensando» con segundos, **tarjeta por cada llamada a herramienta** con su resumen, banda de confirmación resaltada, panel del buzón y **enlaces a lo generado** (`/api/files/…`) | El PRD §6.1 obliga a **mostrar** las llamadas y el estado de confirmación: es parte de la evaluación, no decoración | F4 ✅ |
 | `demo.ts` | Recorre los 6 mensajes llamando a las herramientas, sin modelo | PRD §6.6: demuestra el motor determinista en 30 s, sin claves ni descargas | F2 ✅ |
 | `src/demo/recorrido.ts` | La lógica del recorrido: `leer_buzon` → `validar` → (`extraer`) → `registrar`, con los estados de cada mensaje | `demo.ts` imprime; la lógica se prueba en aislamiento (5 pruebas) | F2 ✅ |
 | `test/*.test.ts` | Las suites de §6 (motor, herramientas, ciclo, API, front y paridad del módulo) | Que lo que afirma este README esté comprobado, no prometido | F1–F6 |
@@ -432,13 +432,13 @@ npm run typecheck   # 0 errores
 | `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` y las tres secciones del reporte | ✅ 7 |
 | `herramientas.test.ts` | El contrato del PRD §6.2: string JSON en ambos caminos, **no lanza**, ids raros rechazados, **anti-alucinación (CA2)**, RN5 y RN7 | ✅ 10 |
 | `demo.test.ts` | El recorrido completo, la tabla del PRD §7.4, la segunda pasada con confirmación y la **idempotencia** | ✅ 5 |
-| `bucle.test.ts` | El recorrido del PRD §11 en dos turnos, topes (CA1), confirmación solo con un «sí» del turno anterior (CA3 · RN5), anti-alucinación (CA2), duplicado que no escribe (RN1) y proveedor que falla sin matar la sesión (CA5) | ✅ 9 |
-| `api.test.ts` | Las cuatro rutas del PRD §6.4 con `inject()`: chat JSON y SSE, sesión que sobrevive entre peticiones, `out/` servido sin escapes y ninguna respuesta con la clave | ✅ 6 |
-| `front-navegador.test.ts` | `web/app.js` en un DOM mínimo: pintado, tarjetas y banda de confirmación | F4 |
+| `bucle.test.ts` | El recorrido del PRD §11 en dos turnos, topes (CA1), confirmación solo con un «sí» del turno anterior (CA3 · RN5), anti-alucinación (CA2), duplicado que no escribe (RN1), proveedor que falla sin matar la sesión (CA5) y la detección de la confirmación con la puntuación que escribe una persona | ✅ 10 |
+| `api.test.ts` | Las cuatro rutas del PRD §6.4 con `inject()`: chat JSON y SSE, sesión que sobrevive entre peticiones, `out/` servido sin escapes, el front servido en la raíz y ninguna respuesta con la clave | ✅ 7 |
+| `front-navegador.test.ts` | `web/app.js` ejecutándose en un DOM mínimo contra el backend real: arranque, un turno completo con sus cinco tarjetas, la banda de confirmación, el botón «Sí, confirmo» que **registra en el maestro**, el envío por clic, el mensaje vacío y el fallo de red | ✅ 7 |
 | `paridad-modulo.test.ts` | Que `modulo/` siga siendo **las mismas piezas** que usa la app | F6 |
 
-Estado: **84 pruebas en verde** (F1 + F2 + F3), `typecheck` con 0 errores y **cero `any`**. La meta al
-cerrar el reto es ~120, el mismo listón que se sostuvo en el reto 01. Las pruebas escriben en un `out/`
+Estado: **93 pruebas en verde** (F1 + F2 + F3 + F4), `typecheck` con 0 errores y **cero `any`**. La meta
+al cerrar el reto es ~120, el mismo listón que se sostuvo en el reto 01. Las pruebas escriben en un `out/`
 temporal o usan `OUT_DIR`, así que **nunca** tocan el del repositorio.
 
 ---
@@ -566,7 +566,7 @@ LLM_PROVIDER=openai OPENAI_API_KEY=... npm run dev
 | Tiempos medidos (este reto, Ollama local 8B al 100 % GPU) | primera llamada del turno **~32 s** (incluye procesar el prompt) · siguientes **3–20 s** · el buzón completo, **minutos** (por eso el prompt pide mensaje a mensaje) · el mismo recorrido con `mock`, **~20 ms** |
 | Coste estimado | **0,005 USD/caso** con proveedor de pago · **0** en local |
 | Modelo | `granite4.1:8b` (Ollama, 5,3 GB, Apache 2.0) |
-| Pruebas | **84** en verde (F1–F3, meta ~120 al cierre) · `typecheck` 0 errores · cero `any` |
+| Pruebas | **93** en verde (F1–F4, meta ~120 al cierre) · `typecheck` 0 errores · cero `any` |
 
 ### 9.6 Si te piden «enséñame el código»
 

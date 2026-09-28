@@ -380,7 +380,7 @@ reto-02/                              raíz del repo y del entregable (.zip = es
 | `src/llm/adapter.ts` · `ollama.ts` · `openai.ts` · `mock.ts` · `fabrica.ts` | F3 ✅ | La interfaz del PRD §6.1 y sus tres implementaciones |
 | `src/server.ts` + `src/server/{aplicacion,chat,estaticos,front,identificadores,memoria}.ts` | F3 ✅ | Las rutas del PRD §6.4, el stream SSE, el servicio de `out/` y el front estático cuando exista |
 | `agent/prompt.md` + `src/knowledge/registro-contratos.md` | F3 ✅ | Comportamiento y conocimiento del proceso, fuera del código (PRD §6.5) |
-| `web/{index.html,estilos.css,app.js,sse.js}` | F4 | El chat: historial, tarjetas de herramienta, banda de confirmación |
+| `web/{index.html,estilos.css,app.js,sse.js}` | F4 ✅ | El chat: historial, tarjetas de herramienta, banda de confirmación, panel del buzón y enlaces a lo generado |
 | `demo.ts` + `src/demo/recorrido.ts` | F2 ✅ | Los 6 mensajes llamando a las herramientas, sin modelo ni claves |
 | `test/*` · `test-utils/*` | F1–F6 | Pruebas por capa; `test-utils` copia `out/` a un directorio temporal |
 
@@ -418,9 +418,9 @@ los datos. Las pruebas escriben siempre en un `out/` temporal (`test-utils/`), n
 | `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` (dentro: `CT-2026-004` y `CT-2026-009`; fuera por 12 días: `CT-2026-012`) | F1 ✅ |
 | `herramientas.test.ts` | El contrato del PRD §6.2 (string JSON, `{ ok }` en ambos caminos, **no lanza**, ids raros rechazados), la **auditoría anti-alucinación (CA2)**, la negativa a registrar sin confirmación (RN5) y el log de cada ejecución (RN7) | F2 ✅ |
 | `demo.test.ts` | El recorrido completo: la tabla del PRD §7.4, `msg-006` sin registrar, la segunda pasada con `confirmado: true`, la idempotencia y dos corridas idénticas sobre `out/` limpio | F2 ✅ |
-| `bucle.test.ts` | Tope de 25 iteraciones y de tokens (CA1), confirmación solo con un «sí» del turno anterior (CA3), proveedor que falla o expira sin matar la sesión (CA5) | F3 |
-| `api.test.ts` | `POST /api/chat`, `GET /api/sessions/:id`, `GET /api/health`; que ninguna respuesta contenga la clave (con `inject()`, sin abrir puerto) | F3 |
-| `front-navegador.test.ts` | `web/app.js` ejecutándose en un DOM mínimo contra el backend real: pintado del historial, tarjetas de herramienta y banda de confirmación | F4 |
+| `bucle.test.ts` | Tope de 25 iteraciones y de tokens (CA1), confirmación solo con un «sí» del turno anterior (CA3 · RN5), anti-alucinación (CA2), duplicado que no escribe (RN1), proveedor que falla sin matar la sesión (CA5) y la detección de la confirmación con la puntuación real («sí, confirmo») | F3 ✅ |
+| `api.test.ts` | `POST /api/chat` (SSE y `?json=1`), `GET /api/sessions/:id`, `GET /api/health`, `GET /api/files/*` sin escapes, el front servido en la raíz y que ninguna respuesta contenga la clave (con `inject()`, sin abrir puerto) | F3 ✅ |
+| `front-navegador.test.ts` | `web/app.js` ejecutándose en un DOM mínimo contra el backend real: arranque, un turno completo con sus cinco tarjetas, la banda de confirmación, el botón «Sí, confirmo» que **registra en el maestro**, el envío por clic, el mensaje vacío y el fallo de red | F4 ✅ |
 | `paridad-modulo.test.ts` | Que `modulo/agent.md`, `modulo/tools/contratos.ts` y `modulo/skill/registro-contratos/SKILL.md` sigan siendo **las mismas piezas** que usa la app (el bonus se evalúa así) | F6 |
 
 Meta: **~120 pruebas en verde** y `npm run typecheck` con 0 errores y **cero `any`** — el mismo listón
@@ -452,7 +452,7 @@ del reto 01, que es el que ya se sabe sostener.
 | **F1** ✅ | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con 53 pruebas | **Cumplido:** `npm run typecheck` 0 errores y las seis suites de `core` en verde con los 6 mensajes del buzón y sus casos sintéticos |
 | **F2** ✅ | `src/tools/contratos.ts`, `src/tools/contexto.ts` y `demo.ts` + `src/demo/` | **Cumplido:** `npm run demo` imprime `6/6` clasificados (3 registrados, 1 duplicado, 1 en revisión, 1 sin escribir), la segunda pasada con `--confirmar` registra `msg-006` y volver a correrlo no duplica ni una fila (PRD §6.6) |
 | **F3** ✅ | `src/agent/`, `src/llm/`, `src/server*`, `agent/prompt.md`, `src/knowledge/` | **Cumplido:** el prompt del PRD §11 se ejecuta contra Ollama real (`granite4.1:8b`: `/api/health` responde con proveedor y modelo, y el modelo llama de verdad a `contratos_*` con la traza en `out/log.jsonl`) y contra `mock` (recorrido completo, determinista, en las pruebas); `bucle.test.ts` (9) y `api.test.ts` (6) en verde y `typecheck` sin errores. **Medido:** el turno completo del buzón contra el 8B local tarda minutos porque el historial crece en cada vuelta; por eso el prompt pide procesar mensaje a mensaje |
-| **F4** | `web/` | El recorrido de 5 minutos del README se puede hacer con ratón: tarjetas visibles y banda de confirmación funcionando |
+| **F4** ✅ | `web/` | **Cumplido:** el recorrido de 5 minutos del README se puede hacer con ratón —cada llamada a `contratos_*` aparece como tarjeta con su resumen, la banda de confirmación se resalta (RN5) y lo generado se descarga desde el panel— y `front-navegador.test.ts` ejecuta `web/app.js` de verdad en un DOM mínimo contra el backend con `inject()` (7 pruebas) |
 | **F5** | `Dockerfile`, `docker-compose.yml`, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | Un comando levanta todo; el link responde desde fuera; `SOLUCION.md` sin secciones vacías |
 | **F6** | `modulo/` (bonus) + `test/paridad-modulo.test.ts` | El test de paridad falla si las tres piezas se separan de la app |
 
