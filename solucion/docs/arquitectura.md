@@ -334,11 +334,12 @@ reto-02/                              raíz del repo y del entregable (.zip = es
     ├── .gitignore                    F0 · portabilidad de esta carpeta
     ├── docs/                         F0 · arquitectura.md y repo-setup.md
     ├── package.json · tsconfig.json  F1 · stack y contrato de calidad
-    ├── demo.ts                       F2 · los 6 mensajes sin modelo (PRD §6.6)
+    ├── demo.ts                       F2 ✅ · los 6 mensajes sin modelo (PRD §6.6)
     ├── agent/prompt.md               F3 · comportamiento del agente
     ├── src/knowledge/registro-contratos.md   F3 · conocimiento del proceso
     ├── src/core/                     18 módulos deterministas (F1 ✅)
-    ├── src/tools/                    F2 · el contrato de herramientas
+    ├── src/tools/                    F2 ✅ · el contrato de herramientas y las cinco `contratos_*`
+    ├── src/demo/                     F2 ✅ · la lógica del recorrido sin modelo
     ├── src/agent/ · src/llm/         F3 · ciclo, sesiones y proveedores
     ├── src/server.ts + src/server/   F3 · API, SSE y estáticos
     ├── web/                          F4 · front de chat sin build
@@ -372,13 +373,14 @@ reto-02/                              raíz del repo y del entregable (.zip = es
 
 | Archivo | Fase | Qué hace |
 |---|---|---|
-| `src/tools/contratos.ts` | F2 | Las cinco herramientas `contratos_*`, con `args` en zod y `execute` que devuelve string |
-| `src/tools/contexto.ts` | F2 | Lo común: resolver `out/` y el maestro desde `ctx`, registrar la ejecución y **auditar** lo que propone el modelo |
+| `src/tools/contratos.ts` | F2 ✅ | Las cinco herramientas `contratos_*`, con `args` en zod y `execute` que devuelve string |
+| `src/tools/contexto.ts` | F2 ✅ | Lo común: construir el entorno desde `ctx`, cargar maestro y comerciales, leer el documento, registrar y **auditar** lo propuesto |
+| `src/tools/contrato.ts` | F2 ✅ | La forma de una herramienta (PRD §6.2) y los ayudantes de respuesta (`exito`, `fallo`, `responder`) |
 | `src/agent/loop.ts` · `paso.ts` · `confirmacion.ts` · `sesion.ts` · `eventos.ts` · `prompt.ts` | F3 | El ciclo, sus topes, la validación/auditoría, la confirmación humana y la sesión |
 | `src/llm/adapter.ts` · `ollama.ts` · `openai.ts` · `mock.ts` · `fabrica.ts` | F3 | La interfaz del PRD §6.1 y sus tres implementaciones |
 | `src/server.ts` + `src/server/{api,chat,estaticos}.ts` | F3 | Las rutas del PRD §6.4, el stream SSE y el front |
 | `web/{index.html,estilos.css,app.js,sse.js}` | F4 | El chat: historial, tarjetas de herramienta, banda de confirmación |
-| `demo.ts` | F2 | Los 6 mensajes llamando a las herramientas, sin modelo ni claves |
+| `demo.ts` + `src/demo/recorrido.ts` | F2 ✅ | Los 6 mensajes llamando a las herramientas, sin modelo ni claves |
 | `test/*` · `test-utils/*` | F1–F6 | Pruebas por capa; `test-utils` copia `out/` a un directorio temporal |
 
 ---
@@ -413,9 +415,8 @@ los datos. Las pruebas escriben siempre en un `out/` temporal (`test-utils/`), n
 | `extraccion.test.ts` | **Casos dorados**: los seis documentos del buzón, campo por campo, con su confianza y su evidencia | F1 ✅ |
 | `clasificacion.test.ts` | RN1–RN5 sobre los seis mensajes **y** casos sintéticos: objeto idéntico con número nuevo, otrosí de contrato desconocido, número automático | F1 ✅ |
 | `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` (dentro: `CT-2026-004` y `CT-2026-009`; fuera por 12 días: `CT-2026-012`) | F1 ✅ |
-| `herramientas.test.ts` | El contrato del PRD §6.2: string JSON, `{ ok }` en ambos caminos, **no lanza**, args inválidos rechazados por zod y devueltos al modelo | F2 |
-| `auditoria.test.ts` | **Anti-alucinación**: si el modelo propone un valor o una fecha alterados respecto del texto, la respuesta es `requiere_revision` y **no** se escribe (CA2) | F2 |
-| `demo.test.ts` | El recorrido completo: `6/6` mensajes clasificados, `msg-006` sin registrar, la segunda pasada con `confirmado: true` lo registra, y una segunda ejecución no duplica nada (idempotencia) | F2 |
+| `herramientas.test.ts` | El contrato del PRD §6.2 (string JSON, `{ ok }` en ambos caminos, **no lanza**, ids raros rechazados), la **auditoría anti-alucinación (CA2)**, la negativa a registrar sin confirmación (RN5) y el log de cada ejecución (RN7) | F2 ✅ |
+| `demo.test.ts` | El recorrido completo: la tabla del PRD §7.4, `msg-006` sin registrar, la segunda pasada con `confirmado: true`, la idempotencia y dos corridas idénticas sobre `out/` limpio | F2 ✅ |
 | `bucle.test.ts` | Tope de 25 iteraciones y de tokens (CA1), confirmación solo con un «sí» del turno anterior (CA3), proveedor que falla o expira sin matar la sesión (CA5) | F3 |
 | `api.test.ts` | `POST /api/chat`, `GET /api/sessions/:id`, `GET /api/health`; que ninguna respuesta contenga la clave (con `inject()`, sin abrir puerto) | F3 |
 | `front-navegador.test.ts` | `web/app.js` ejecutándose en un DOM mínimo contra el backend real: pintado del historial, tarjetas de herramienta y banda de confirmación | F4 |
@@ -448,7 +449,7 @@ del reto 01, que es el que ya se sabe sostener.
 |---|---|---|
 | **F0** ✅ | Setup: repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, este documento y `repo-setup.md`, README maestro | Árbol limpio, `git status` limpio, ignores verificados con `git add -A --dry-run` |
 | **F1** ✅ | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con 53 pruebas | **Cumplido:** `npm run typecheck` 0 errores y las seis suites de `core` en verde con los 6 mensajes del buzón y sus casos sintéticos |
-| **F2** | `src/tools/contratos.ts`, `src/core/log.ts` y `demo.ts` | `npm run demo` imprime `6/6` clasificados, `msg-006` sin registrar y el segundo pase lo registra (PRD §6.6) |
+| **F2** ✅ | `src/tools/contratos.ts`, `src/tools/contexto.ts` y `demo.ts` + `src/demo/` | **Cumplido:** `npm run demo` imprime `6/6` clasificados (3 registrados, 1 duplicado, 1 en revisión, 1 sin escribir), la segunda pasada con `--confirmar` registra `msg-006` y volver a correrlo no duplica ni una fila (PRD §6.6) |
 | **F3** | `src/agent/`, `src/llm/`, `src/server*`, `agent/prompt.md`, `src/knowledge/` | El prompt del PRD §11 se ejecuta de verdad contra Ollama y `mock`; `api.test.ts` y `bucle.test.ts` en verde |
 | **F4** | `web/` | El recorrido de 5 minutos del README se puede hacer con ratón: tarjetas visibles y banda de confirmación funcionando |
 | **F5** | `Dockerfile`, `docker-compose.yml`, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | Un comando levanta todo; el link responde desde fuera; `SOLUCION.md` sin secciones vacías |
