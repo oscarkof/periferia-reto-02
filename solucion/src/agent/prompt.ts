@@ -37,7 +37,7 @@ function leerMarkdown(directorio: string, relativa: string, que: string): Result
   }
 }
 
-/** Carga `agent/prompt.md` y `src/knowledge/registro-proveedor.md`. */
+/** Carga `agent/prompt.md` y `src/knowledge/registro-contratos.md`. */
 export function cargarContextoAgente(directorio: string): Resultado<ContextoAgente> {
   const prompt = leerMarkdown(directorio, RUTA_PROMPT, "comportamiento")
   if (!prompt.ok) return prompt
