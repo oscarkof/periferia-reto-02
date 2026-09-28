@@ -110,7 +110,7 @@ export async function ejecutarTurno(opciones: OpcionesTurno): Promise<Resultado<
   let totalLlamadas = 0
 
   const cerrar = (texto: string): Resultado<ResultadoTurno> => {
-    guardarSesion(directorio, sesion, ahora())
+    guardarSesion(sesion, ahora())
     const needsConfirmation = sesion.pendiente !== null
     emitir({ tipo: "fin", texto, needsConfirmation, llamadas: totalLlamadas, iteraciones })
     return { ok: true, data: { texto, needsConfirmation, llamadas: totalLlamadas, iteraciones, sesion } }
@@ -123,7 +123,7 @@ export async function ejecutarTurno(opciones: OpcionesTurno): Promise<Resultado<
     if (!respuesta.ok) {
       // CA5: el fallo se cuenta y la sesión no muere.
       emitir({ tipo: "error", texto: `No pude hablar con el modelo: ${respuesta.error}` })
-      guardarSesion(directorio, sesion, ahora())
+      guardarSesion(sesion, ahora())
       return { ok: false, error: respuesta.error }
     }
 

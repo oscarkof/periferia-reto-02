@@ -1,0 +1,488 @@
+/* =============================================================================
+   Front del chat · sin dependencias (PRD §0: "front libre ... o HTML plano").
+   Paleta sobria, un solo acento, y el estado de confirmación destacado porque
+   CA3 lo exige: el front tiene que resaltar cuándo el agente pide confirmación.
+   ============================================================================= */
+
+:root {
+  --tinta: #0f172a;
+  --tinta-suave: #475569;
+  --tinta-tenue: #94a3b8;
+  --fondo: #f6f7f9;
+  --papel: #ffffff;
+  --borde: #e2e8f0;
+  --acento: #0f766e;
+  --acento-suave: #ccfbf1;
+  --alerta: #b45309;
+  --alerta-fondo: #fffbeb;
+  --alerta-borde: #fcd34d;
+  --error: #b91c1c;
+  --error-fondo: #fef2f2;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --radio: 12px;
+  --sombra: 0 1px 2px rgb(15 23 42 / 6%), 0 8px 24px rgb(15 23 42 / 4%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/*
+  El atributo `hidden` del HTML tiene que ganar SIEMPRE. Varias clases de aquí
+  fijan `display` (`.pensando`, `.confirmacion`, `.aviso`) y una regla del autor
+  pesa más que la del navegador, así que sin esto un elemento marcado como
+  oculto se veía igual: la banda de confirmación y el indicador de trabajo
+  aparecían desde el primer segundo, antes de conversar nada.
+*/
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--tinta);
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* ── Cabecera ─────────────────────────────────────────────────────────────── */
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--papel);
+  border-bottom: 1px solid var(--borde);
+}
+
+.cabecera h1 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.cabecera__sub {
+  margin: 2px 0 0;
+  color: var(--tinta-suave);
+  font-size: 13px;
+}
+
+.cabecera__estado {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.insignia {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.insignia--neutra {
+  background: #f1f5f9;
+  color: var(--tinta-suave);
+}
+
+.insignia--ok {
+  background: var(--acento-suave);
+  color: #115e59;
+}
+
+.insignia--error {
+  background: var(--error-fondo);
+  color: var(--error);
+}
+
+/* ── Botones ──────────────────────────────────────────────────────────────── */
+
+.boton {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton--principal {
+  background: var(--acento);
+  color: #fff;
+}
+
+.boton--principal:hover {
+  background: #115e59;
+}
+
+.boton--fantasma {
+  background: var(--papel);
+  color: var(--tinta);
+  border-color: var(--borde);
+}
+
+.boton--fantasma:hover {
+  background: #f8fafc;
+}
+
+/* ── Disposición ──────────────────────────────────────────────────────────── */
+
+.pantalla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px 20px 40px;
+  align-items: start;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 68vh;
+  padding: 18px;
+  background: var(--papel);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+
+.lateral {
+  padding: 16px;
+  background: var(--papel);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+
+.lateral__titulo {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tinta-tenue);
+}
+
+.lateral__titulo:not(:first-child) {
+  margin-top: 20px;
+}
+
+.datos {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.datos dt {
+  color: var(--tinta-suave);
+}
+
+.datos dd {
+  margin: 0;
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+
+/* ── Conversación ─────────────────────────────────────────────────────────── */
+
+.conversacion {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.turno__quien {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+.turno--usuario .turno__cuerpo {
+  padding: 10px 14px;
+  background: #f1f5f9;
+  border-radius: var(--radio);
+  white-space: pre-wrap;
+}
+
+.turno--agente .turno__cuerpo {
+  white-space: pre-wrap;
+}
+
+.turno--error .turno__cuerpo {
+  padding: 10px 14px;
+  background: var(--error-fondo);
+  border: 1px solid #fecaca;
+  border-radius: var(--radio);
+  color: var(--error);
+}
+
+/* El texto del turno vive en su propio nodo, junto a las tarjetas de herramienta:
+   así repintarlo no las borra (CA4). Vacío no debe dejar un hueco. */
+.turno__texto:empty {
+  display: none;
+}
+
+/* Tarjetas de llamada a herramienta: CA4 pide que se vean en el chat. */
+.llamadas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.llamada {
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--tinta-tenue);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.llamada--ok {
+  border-left-color: var(--acento);
+}
+
+.llamada--fallo {
+  border-left-color: var(--error);
+}
+
+.llamada__nombre {
+  font-family: var(--mono);
+  font-weight: 700;
+}
+
+.llamada__args,
+.llamada__resumen {
+  display: block;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--tinta-suave);
+  overflow-wrap: anywhere;
+}
+
+.llamada__resumen {
+  margin-top: 2px;
+  color: var(--tinta);
+}
+
+.aviso-turno {
+  display: block;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: var(--alerta-fondo);
+  border: 1px solid var(--alerta-borde);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--alerta);
+}
+
+/* ── Pensando ─────────────────────────────────────────────────────────────── */
+
+.pensando {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+  color: var(--tinta-suave);
+  font-size: 14px;
+}
+
+.pensando__punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--acento);
+  animation: latido 1s ease-in-out infinite;
+}
+
+@keyframes latido {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pensando__punto {
+    animation: none;
+  }
+}
+
+/* ── Confirmación (CA3): el estado que el front TIENE que resaltar ────────── */
+
+.confirmacion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--alerta-fondo);
+  border: 1px solid var(--alerta-borde);
+  border-left: 4px solid var(--alerta);
+  border-radius: var(--radio);
+}
+
+.confirmacion__texto {
+  display: flex;
+  flex-direction: column;
+  color: var(--alerta);
+  font-size: 14px;
+}
+
+.confirmacion__acciones {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Sugerencias y entrada ────────────────────────────────────────────────── */
+
+.sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sugerencia {
+  padding: 6px 10px;
+  background: var(--papel);
+  border: 1px dashed var(--borde);
+  border-radius: 999px;
+  color: var(--tinta-suave);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sugerencia:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.entrada {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.entrada__campo {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  font: inherit;
+  resize: vertical;
+}
+
+.entrada__campo:focus {
+  outline: 2px solid var(--acento-suave);
+  border-color: var(--acento);
+}
+
+.entrada__ayuda {
+  margin: 0;
+  color: var(--tinta-tenue);
+  font-size: 12px;
+}
+
+/* ── Archivos y casos ─────────────────────────────────────────────────────── */
+
+.archivos,
+.casos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.archivos a {
+  color: var(--acento);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.archivos a:hover {
+  text-decoration: underline;
+}
+
+.archivos__vacio {
+  color: var(--tinta-tenue);
+}
+
+.caso {
+  padding: 6px 10px;
+  background: #f8fafc;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.caso:hover {
+  border-color: var(--acento);
+}
+
+/* ── Aviso flotante ───────────────────────────────────────────────────────── */
+
+.aviso {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(680px, 92vw);
+  padding: 10px 16px;
+  background: var(--error-fondo);
+  border: 1px solid #fecaca;
+  border-radius: var(--radio);
+  color: var(--error);
+  box-shadow: var(--sombra);
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .pantalla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chat {
+    min-height: auto;
+  }
+}
+
+

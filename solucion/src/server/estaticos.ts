@@ -7,7 +7,7 @@
  */
 import fs from "node:fs"
 import path from "node:path"
-import { resolverDentro } from "../core/rutas.ts"
+import { dirOut, resolverDentro } from "../core/rutas.ts"
 import type { Resultado } from "../core/tipos.ts"
 
 /** Tipos que el agente produce, con su content-type. */
@@ -33,13 +33,15 @@ export interface ArchivoServido {
 
 /**
  * Lee un archivo de `out/` a partir de sus segmentos de ruta.
- * Rechaza cualquier intento de salir del directorio de salida.
+ *
+ * La base es la misma que la del resto del motor (`dirOut`): respeta `OUT_DIR`,
+ * así que servir archivos y escribirlos apuntan siempre al mismo sitio. Rechaza
+ * cualquier intento de salir del directorio de salida.
  */
-export function leerDeOut(directorio: string, partes: string[]): Resultado<ArchivoServido> {
+export function leerDeOut(partes: string[]): Resultado<ArchivoServido> {
   if (partes.length === 0) return { ok: false, error: "no se indicó ningún archivo" }
 
-  const base = path.join(directorio, "out")
-  const ruta = resolverDentro(base, ...partes)
+  const ruta = resolverDentro(dirOut(), ...partes)
   if (!ruta.ok) return { ok: false, error: "ruta no permitida: solo se sirven archivos de out/" }
 
   try {

@@ -61,9 +61,15 @@ const PALABRAS_DE_FRENO: readonly string[] = [
  * etiquetas de plantillas— y las listas de abajo se leen en minúsculas. Bug real
  * detectado al probar el ciclo: con `normalizar`, ni «sí» ni «confirmo el valor 0»
  * contaban como confirmación, así que RN5 nunca se satisfacía.
+ *
+ * Además se quita la puntuación, porque una persona escribe «sí, confirmo» o
+ * «Sí.» y el botón del front manda exactamente «sí, confirmo».
  */
 export function normalizarRespuesta(texto: string): string {
   return comparable(texto)
+    .replace(/[.,;:!¡?¿"'()[\]]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 /** ¿El usuario negó o pidió esperar? */
