@@ -31,15 +31,19 @@ archivo y alertas— con **53 pruebas en verde** y `typecheck` sin errores. **To
 agente ni front** (`src/tools/`, `web/`, `demo.ts`), y por eso los comandos de §1 se marcan según lo que
 ya funciona.
 
-| Fase | Qué entrega | Estado |
-|---|---|---|
-| **F0** | Repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, arquitectura y README | ✅ **hecho** |
-| **F1** | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con **53 pruebas** | ✅ **hecho** |
-| **F2** | `src/tools/contratos.ts` + `demo.ts` (los 6 mensajes sin modelo) | ⏳ siguiente |
-| **F3** | Ciclo del agente, adaptadores de proveedor, API HTTP y system prompt | ⏳ |
-| **F4** | Front de chat (tool-calls visibles + banda de confirmación) | ⏳ |
-| **F5** | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ |
-| **F6** | Bonus: `modulo/` empaquetado + test de paridad | ⏳ |
+| Fase | Feature | Rama | Qué entrega | Estado |
+|---|---|---|---|---|
+| **F0** | `setup` | `main` | Repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, arquitectura y README | ✅ **hecho** |
+| **F1** | `core` | `main` | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con **53 pruebas** | ✅ **hecho** |
+| **F2** | `tools` | `f02-tools` | Las cinco herramientas `contratos_*` + `demo.ts` (los 6 mensajes sin modelo) | ⏳ siguiente |
+| **F3** | `agente-llm-api` | `f03-agente-llm` | Ciclo del agente, adaptadores de proveedor (ollama/openai/mock), API HTTP y system prompt | ⏳ |
+| **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | ⏳ |
+| **F5** | `deploy-solucion` | `f05-deploy` | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ |
+| **F6** | `modulo` (bonus) | `f06-modulo` | Agente empaquetado reutilizable + test de paridad con la app | ⏳ |
+
+Cada fase es **una feature con nombre propio**, y ese nombre es el mismo de la rama y del mensaje de
+commit (`feat(core)`, `feat(tools)`, `feat(agent)`…). La convención completa, con los mensajes listos para
+copiar, está en [`solucion/docs/repo-setup.md`](solucion/docs/repo-setup.md) §5.
 
 ---
 

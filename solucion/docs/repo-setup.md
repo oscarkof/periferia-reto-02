@@ -112,21 +112,40 @@ sin entregar las variables.
 
 ---
 
-## 5. Convención para los commits de las fases siguientes
+## 5. Árbol de features: nombre, rama y commit
 
-| Fase | Mensaje sugerido |
-|---|---|
-| F1 | `feat(core): motor determinista — extracción, normalización, confianza y clasificación` |
-| F2 | `feat(tools): herramientas zod contratos_* + demo.ts reproducible sin modelo` |
-| F3 | `feat(agent): ciclo del agente con topes, sesiones y confirmación humana` |
-| F3 | `feat(llm): adaptador de proveedor con implementaciones ollama/openai/mock` |
-| F4 | `feat(web): front de chat con tool-calls visibles y banda de confirmación` |
-| F5 | `chore(deploy): Dockerfile, compose y link de prueba` |
-| F5 | `docs(solucion): SOLUCION.md con arquitectura, decisiones, cobertura y riesgos` |
-| F6 | `feat(modulo): agente empaquetado reutilizable + test de paridad con la app` |
+Una **feature por fase**, con nombre corto y estable. Ese nombre se usa igual en la rama, en el
+mensaje de commit y al hablar del entregable en la sustentación.
 
-Con historial lineal basta. Si quieres mostrar flujo de trabajo, usa una rama por fase y cierra con
-`git merge --no-ff`, que deja el merge visible.
+| Fase | Feature | Rama | Qué es | Commit(s) |
+|---|---|---|---|---|
+| **F0** | `setup` | *(directo en `main`)* | Repositorio, ignores, arquitectura y README | `chore(baseline)` · `chore(setup)` |
+| **F1** | `core` | *(directo en `main`)* | Motor determinista: extracción, confianza, clasificación, archivo y alertas | `feat(core)` ×2 · `docs(readme)` |
+| **F2** | `tools` | `f02-tools` | Las cinco herramientas `contratos_*` + `demo.ts` sin modelo | `feat(tools)` |
+| **F3** | `agente-llm-api` | `f03-agente-llm` | Ciclo del agente, adaptadores de proveedor y API HTTP con el system prompt | `feat(agent)` · `feat(llm)` |
+| **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | `feat(web)` |
+| **F5** | `deploy-solucion` | `f05-deploy` | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | `chore(deploy)` · `docs(solucion)` |
+| **F6** | `modulo` *(bonus)* | `f06-modulo` | Agente empaquetado reutilizable + test de paridad con la app | `feat(modulo)` |
+
+Mensajes completos sugeridos:
+
+```
+feat(tools): herramientas zod contratos_* + demo.ts reproducible sin modelo
+feat(agent): ciclo del agente con topes, sesiones y confirmacion humana
+feat(llm): adaptador de proveedor con implementaciones ollama/openai/mock
+feat(web): front de chat con tool-calls visibles y banda de confirmacion
+chore(deploy): Dockerfile, compose y link de prueba
+docs(solucion): SOLUCION.md con arquitectura, decisiones, cobertura y riesgos
+feat(modulo): agente empaquetado reutilizable + test de paridad con la app
+```
+
+**F0 y F1 ya están en `main`** (se construyeron antes de tener remoto, y ese historial lineal cuenta la
+historia sin ruido). Desde F2 cada fase va en su rama y se cierra con un **PR** —o con `git merge --no-ff`
+si se hace en local—, que deja el merge visible: es el mismo flujo que se usó en el reto 01
+(`f01-motor-determinista`, `f02-tools`, `f03-cicloagente-llm`, `f03-front-web`).
+
+El nombre de la rama **no** lleva el número del reto: el repositorio ya es del reto, y así el árbol de
+ramas se lee igual si algún día se reutiliza esta base.
 
 ---
 
