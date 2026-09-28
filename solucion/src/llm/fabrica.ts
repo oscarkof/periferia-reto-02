@@ -5,7 +5,7 @@
  * **nunca** se registra ni se devuelve por la API (PRD §6.1 y §8).
  */
 import type { AdaptadorLlm } from "./adapter.ts"
-import { crearAdaptadorMock, guionDemo } from "./mock.ts"
+import { crearAdaptadorMock, guionReactivo, type GuionMock } from "./mock.ts"
 import { crearAdaptadorOllama } from "./ollama.ts"
 import { crearAdaptadorOpenAi } from "./openai.ts"
 import type { Resultado } from "../core/tipos.ts"
@@ -27,8 +27,8 @@ export function esProveedor(valor: string): valor is ProveedorLlm {
 export interface OpcionesFabrica {
   /** Fuerza el proveedor en vez de leer `LLM_PROVIDER`. */
   proveedor?: string
-  /** Guion que usará el proveedor `mock` en vez del de la demo. */
-  guionMock?: Parameters<typeof crearAdaptadorMock>[0]
+  /** Guion del proveedor `mock`; por defecto, el reactivo de la demo. */
+  guionMock?: GuionMock
 }
 
 /**
@@ -49,7 +49,9 @@ export function crearAdaptador(opciones: OpcionesFabrica = {}): Resultado<Adapta
 
   if (solicitado === "openai") return crearAdaptadorOpenAi()
   if (solicitado === "mock") {
-    return { ok: true, data: crearAdaptadorMock(opciones.guionMock ?? guionDemo()) }
+    // El guion reactivo lee la conversación, así que la demo servida no se
+    // desalinea por recargar la página ni por pulsar «confirmo» varias veces.
+    return { ok: true, data: crearAdaptadorMock(opciones.guionMock ?? guionReactivo()) }
   }
   return { ok: true, data: crearAdaptadorOllama() }
 }

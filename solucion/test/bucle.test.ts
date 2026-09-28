@@ -20,7 +20,7 @@ import { MAX_ITERACIONES, ejecutarTurno, type ResultadoTurno } from "../src/agen
 import { crearSesion, type Sesion } from "../src/agent/sesion.ts"
 import type { EventoTurno } from "../src/agent/eventos.ts"
 import type { AdaptadorLlm } from "../src/llm/adapter.ts"
-import { crearAdaptadorMock, guionDemo, type PasoMock } from "../src/llm/mock.ts"
+import { crearAdaptadorMock, guionDemo, guionReactivo, type PasoMock } from "../src/llm/mock.ts"
 import { listarHerramientas } from "../src/tools/contratos.ts"
 
 /** `solucion/`: la raíz desde la que las herramientas resuelven los fixtures. */
@@ -285,6 +285,62 @@ test("un fallo del proveedor se cuenta en el chat y la sesión sigue viva (CA5)"
   // La sesión no muere: el turno siguiente responde con normalidad
   const siguiente = await turnoCon(crearAdaptadorMock([{ texto: "sigo aquí" }]), "¿sigues?", sesion)
   assert.equal(siguiente.resultado.texto, "sigo aquí")
+})
+
+/* ── El guion reactivo: el que sirve la aplicación ────────────────────────── */
+
+test("el guion reactivo registra lo dudoso al confirmar, aunque se pulse varias veces", async () => {
+  outTemporal()
+  const mock = crearAdaptadorMock(guionReactivo())
+
+  const primera = await turnoCon(
+    mock,
+    "Procesa el buzón de este mes: registra lo que esté limpio y muéstrame lo que requiere revisión.",
+  )
+  assert.equal(primera.resultado.needsConfirmation, true)
+  assert.equal(registrado("CT-2026-015"), true, "lo limpio se registra")
+  assert.equal(registrado("CM-2026-03"), false, "lo dudoso espera al humano")
+
+  // Esto es lo que hacía el guion secuencial: no registraba nada al confirmar.
+  const segunda = await turnoCon(mock, "sí, confirmo", primera.sesion)
+  assert.equal(registrado("CM-2026-03"), true, "el «sí» tiene que registrar msg-006")
+  assert.equal(segunda.resultado.needsConfirmation, false)
+
+  // Insistir con otro «sí» no rompe ni duplica el maestro
+  const filas = filasMaestro().length
+  const tercera = await turnoCon(mock, "sí, confirmo", primera.sesion)
+  assert.equal(filasMaestro().length, filas, "insistir no puede añadir filas")
+  assert.equal(tercera.resultado.needsConfirmation, false)
+})
+
+test("el guion reactivo no se desalinea entre conversaciones: cada sesión empieza de cero", async () => {
+  outTemporal()
+  const mock = crearAdaptadorMock(guionReactivo())
+  const mensaje =
+    "Procesa el buzón de este mes: registra lo que esté limpio y muéstrame lo que requiere revisión."
+
+  const una = await turnoCon(mock, mensaje, crearSesion("sesion-a"))
+  assert.equal(una.eventos.filter((evento) => evento.tipo === "llamada").length, 5)
+
+  // La segunda conversación es lo que pasa al recargar la página: se repite el
+  // recorrido completo y vuelve a pedir la confirmación.
+  const otra = await turnoCon(mock, mensaje, crearSesion("sesion-b"))
+  assert.equal(otra.eventos.filter((evento) => evento.tipo === "llamada").length, 5)
+  assert.equal(otra.resultado.needsConfirmation, true)
+  assert.match(otra.resultado.texto, /msg-006/)
+})
+
+test("una pregunta sobre el buzón se contesta sin escribir en el maestro", async () => {
+  outTemporal()
+  const { resultado, eventos } = await turnoCon(crearAdaptadorMock(guionReactivo()), "¿Qué hay en el buzón?")
+
+  assert.deepEqual(
+    eventos.filter((evento) => evento.tipo === "llamada").map((evento) => evento.nombre),
+    ["contratos_leer_buzon"],
+    "para responder basta con leer el buzón",
+  )
+  assert.match(resultado.texto, /6 mensajes sin procesar/)
+  assert.equal(resultado.needsConfirmation, false)
 })
 
 test("el tope de tokens de la sesión cierra el turno con un aviso (costo)", async () => {
