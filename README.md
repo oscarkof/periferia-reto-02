@@ -26,15 +26,16 @@ y las decisiones de repositorio en [`solucion/docs/repo-setup.md`](solucion/docs
 ## 0. Estado del entregable
 
 Este reto se construye por fases; el historial de commits las sigue una a una. Hoy el repositorio está
-en **F0 (setup)**: estructura, control de versiones, arquitectura diseñada, configuración documentada y
-este README. **Todavía no hay código de aplicación** (`src/`, `web/`, `demo.ts`), y por eso los comandos
-de §1 se marcan según lo que ya funciona.
+en **F1 (motor determinista)**: `src/core/` completo —extracción, confianza, clasificación, maestro,
+archivo y alertas— con **53 pruebas en verde** y `typecheck` sin errores. **Todavía no hay herramientas,
+agente ni front** (`src/tools/`, `web/`, `demo.ts`), y por eso los comandos de §1 se marcan según lo que
+ya funciona.
 
 | Fase | Qué entrega | Estado |
 |---|---|---|
 | **F0** | Repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, arquitectura y README | ✅ **hecho** |
-| **F1** | `package.json`, `tsconfig.json` y `src/core/` (motor determinista) con sus pruebas | ⏳ siguiente |
-| **F2** | `src/tools/contratos.ts` + `demo.ts` (los 6 mensajes sin modelo) | ⏳ |
+| **F1** | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con **53 pruebas** | ✅ **hecho** |
+| **F2** | `src/tools/contratos.ts` + `demo.ts` (los 6 mensajes sin modelo) | ⏳ siguiente |
 | **F3** | Ciclo del agente, adaptadores de proveedor, API HTTP y system prompt | ⏳ |
 | **F4** | Front de chat (tool-calls visibles + banda de confirmación) | ⏳ |
 | **F5** | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ |
@@ -57,9 +58,9 @@ ya descargadas.
 
 | Comando | Hoy | Llega en |
 |---|---|---|
-| `npm install` | — | F1 (con `package.json`) |
-| `npm run typecheck` | — | F1 (0 errores, cero `any`) |
-| `npm test` | — | F1 (las primeras suites de `core`) |
+| `npm install` | ✅ funciona (75 paquetes, ~4 s) | — |
+| `npm run typecheck` | ✅ **0 errores**, cero `any` | — |
+| `npm test` | ✅ **53 pruebas**, sin modelo y sin red | F2→F6 (hasta ~120) |
 | `npm run demo` | — | F2 (los 6 mensajes del buzón, sin modelo) |
 | `npm run dev` | — | F3 (API + ciclo) y F4 (front) |
 | `docker compose up --build` | — | F5 |
@@ -230,20 +231,20 @@ reto-02/                              ← raíz del repo y del entregable (.zip 
     ├── .env.example                  las 16 variables documentadas, sin valores
     ├── .gitignore                    lo mínimo para reutilizar esta carpeta como base
     ├── docs/                         arquitectura.md y repo-setup.md
-    ├── package.json                  dependencias, scripts y engines                        [F1]
-    ├── package-lock.json             versiones exactas (sí se versiona)                      [F1]
-    ├── tsconfig.json                 TypeScript estricto, sin emitir                          [F1]
+    ├── package.json                  dependencias, scripts y engines                        [F1 ✅]
+    ├── package-lock.json             versiones exactas (sí se versiona)                      [F1 ✅]
+    ├── tsconfig.json                 TypeScript estricto, sin emitir                          [F1 ✅]
     ├── demo.ts                       los 6 mensajes sin modelo (PRD §6.6)                    [F2]
     ├── agent/prompt.md               comportamiento del agente (system prompt)               [F3]
     ├── src/knowledge/                conocimiento del proceso que el agente consulta         [F3]
-    ├── src/core/                     motor determinista (extracción, confianza, maestro…)     [F1]
+    ├── src/core/                     18 módulos deterministas (F1 ✅)
     ├── src/tools/                    las cinco herramientas `contratos_*`                     [F2]
     ├── src/agent/                    ciclo, sesiones y confirmación humana                    [F3]
     ├── src/llm/                      adaptadores de proveedor (ollama · openai · mock)        [F3]
     ├── src/server.ts + src/server/   API HTTP, stream SSE y front estático                    [F3]
     ├── web/                          front de chat (HTML, CSS, JS sin build)                  [F4]
     ├── test/                         pruebas automáticas (~120 previstas)                     [F1–F6]
-    ├── test-utils/                   utilidades y dobles de prueba (no son pruebas)           [F1]
+    ├── test-utils/                   utilidades y dobles de prueba (no son pruebas)           [F1 ✅]
     └── out/                          salida generada (solo su .gitkeep se versiona)
 ```
 
@@ -267,10 +268,10 @@ reto-02/                              ← raíz del repo y del entregable (.zip 
 | `.gitignore` | Lo mínimo para que esta carpeta se pueda reutilizar como base de otro reto | Portabilidad: no arrastra basura de este reto | F0 ✅ |
 | `docs/arquitectura.md` | El diseño completo: capas, contrato de herramientas, flujo por mensaje, extracción y confianza, clasificación, `out/`, alertas, decisiones y plan de pruebas | Es el contrato de lo que se construye; evita decidir sobre la marcha | F0 ✅ |
 | `docs/repo-setup.md` | Cómo está armado el repositorio: ignores con su porqué, los dos commits de F0, convención de commits, checklist de seguridad y plan del entregable | Que las decisiones de entrega estén escritas y no en la cabeza de nadie | F0 ✅ |
-| `package.json` | Dependencias, 4 scripts (`test`, `typecheck`, `demo`, `dev`) y `engines: >=22.18` | Un comando (`npm run dev`) y un runner sin dependencias extra | F1 |
-| `tsconfig.json` | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `erasableSyntaxOnly`, sin emitir | Es el contrato de calidad: sin `any` y con la sintaxis que Node puede borrar | F1 |
+| `package.json` | Dependencias, 4 scripts (`test`, `typecheck`, `demo`, `dev`) y `engines: >=22.18` | Un comando (`npm run dev`) y un runner sin dependencias extra | F1 ✅ |
+| `tsconfig.json` | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `erasableSyntaxOnly`, sin emitir | Es el contrato de calidad: sin `any` y con la sintaxis que Node puede borrar | F1 ✅ |
 
-### 4.3 `src/core/`: el motor determinista (sin modelo) · F1
+### 4.3 `src/core/`: el motor determinista (sin modelo) · F1 ✅
 
 Aquí **no hay lenguaje natural**: es el código que extrae los valores, decide la clasificación y escribe.
 Es la razón de que el agente no pueda inventar un dato.
@@ -285,7 +286,10 @@ Es la razón de que el agente no pueda inventar un dato.
 | `buzon.ts` | Descubre y valida los `correo.json` del buzón y decide `tiene_contrato` | HU-1: separa «leer el buzón» de «interpretar el contrato»; un correo sin contrato se rechaza temprano |
 | `extraccion.ts` | Saca los campos del texto del contrato con la estructura de cláusulas y regex | Corazón de HU-2. Determinista, para que el resultado sea **auditable y reproducible** |
 | `normalizacion.ts` | Numerales en español, fechas («primero (1) de agosto de 2026»), valores (`USD 120,000.00`), NIT/RUC → país, slugs de carpeta | Los contratos están escritos en palabras, no en ISO 8601; aquí se traducen sin adivinar |
-| `confianza.ts` | Reglas de confianza por campo y el umbral **0.8** en una sola constante | RN5: un número por campo con justificación; tenerlo en un sitio permite explicarlo y probarlo |
+| `clausulas.ts` | Trocea el contrato en cláusulas (`PRIMERA. OBJETO.`), separando el encabezado del cuerpo cuando vienen en la misma línea | Los contratos tienen estructura fija: sin ese troceado, buscar «valor» o «plazo» sería adivinar |
+| `identificadores.ts` | NIT/RUC/RTN → país y sin dígito de verificación; slug de carpeta; similitud de objetos (Jaccard) | Es donde se resuelve «esto es de Ecuador y no de Colombia» y el umbral 0.9 de RN2 |
+| `comerciales.ts` | Carga `comerciales.json` y resuelve el remitente del correo | Un remitente desconocido se reporta sin bloquear (HU-3), y para eso hace falta una lista contra la que comparar |
+| `entorno.ts` | Construye el entorno de una ejecución desde `ctx.directory`: escritor confinado, rutas de datos y fecha de referencia | El contrato del PRD §6.2 pasa una raíz en cada llamada; aquí se convierte en rutas concretas, y en las pruebas en un `out/` temporal |
 | `clasificacion.ts` | RN1–RN4: duplicado, actualización (incluido el otrosí), nuevo y rechazado | Es la regla que evita corromper el maestro, y la que más preguntas va a recibir en la defensa |
 | `archivado.ts` | Calcula `Contratos/<año_inicio>/<cliente-slug>/<id_contrato>.<ext>` y copia el documento | HU-4: el «SharePoint» simulado; que cualquiera encuentre el contrato donde espera |
 | `historial.ts` | `historial.jsonl` (cambios) y `procesados.json` (idempotencia) | O2 y HU-4: una actualización deja rastro y dos ejecuciones no duplican ni reprocesan |
@@ -368,14 +372,14 @@ npm test            # ~120 pruebas previstas, 0 fallos (sin modelo y sin red)
 npm run typecheck   # 0 errores
 ```
 
-| Suite | Qué fija | Fase |
+| Suite | Qué fija | Estado |
 |---|---|---|
-| `normalizacion.test.ts` | Numerales en español, fechas ordinales, valores (`USD 120,000.00`), NIT/RUC → país, slugs | F1 |
-| `csv.test.ts` | Comillas, comas y saltos dentro de un campo; la escritura atómica no deja el archivo a medias | F1 |
-| `extraccion.test.ts` | **Casos dorados**: los seis documentos, campo por campo, con su confianza | F1 |
-| `confianza.test.ts` | El umbral 0.8 y cada regla de confianza por separado | F1 |
-| `clasificacion.test.ts` | RN1–RN4 sobre los seis mensajes y casos sintéticos (mismo NIT con otro contrato, mismo id con valor distinto) | F1 |
-| `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` | F1 |
+| `csv.test.ts` | Comillas, comas y saltos dentro de un campo; la escritura atómica no deja el archivo a medias | ✅ 11 |
+| `normalizacion.test.ts` | Numerales en español, fechas ordinales, importes locales/ingleses, monedas, NIT/RUC → país, slugs y similitud | ✅ 13 |
+| `entrada.test.ts` | El buzón (6 mensajes, contrato vs otrosí vs cotización) y RN6: el fixture se copia a `out/` intacto | ✅ 6 |
+| `extraccion.test.ts` | **Casos dorados**: los seis documentos, campo por campo, con su confianza y su evidencia | ✅ 7 |
+| `clasificacion.test.ts` | RN1–RN5 sobre los seis mensajes y casos sintéticos (objeto idéntico con número nuevo, otrosí de contrato desconocido, número automático) | ✅ 9 |
+| `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` y las tres secciones del reporte | ✅ 7 |
 | `herramientas.test.ts` | El contrato del PRD §6.2: string JSON, `{ ok }` en ambos caminos, **no lanza**, args inválidos rechazados | F2 |
 | `auditoria.test.ts` | **Anti-alucinación**: si el modelo propone un valor alterado, la respuesta es revisión y no se escribe (CA2) | F2 |
 | `demo.test.ts` | El recorrido completo y la idempotencia de la segunda ejecución | F2 |
@@ -384,8 +388,9 @@ npm run typecheck   # 0 errores
 | `front-navegador.test.ts` | `web/app.js` en un DOM mínimo: pintado, tarjetas y banda de confirmación | F4 |
 | `paridad-modulo.test.ts` | Que `modulo/` siga siendo **las mismas piezas** que usa la app | F6 |
 
-Meta: **~120 pruebas en verde**, `typecheck` con 0 errores y **cero `any`** — el mismo listón que se
-sostuvo en el reto 01. Las pruebas escriben en un `out/` temporal, nunca en el del repositorio.
+Estado: **53 pruebas en verde** (F1), `typecheck` con 0 errores y **cero `any`**. La meta al cerrar el
+reto es ~120, el mismo listón que se sostuvo en el reto 01. Las pruebas escriben en un `out/` temporal,
+nunca en el del repositorio.
 
 ---
 
@@ -512,13 +517,13 @@ LLM_PROVIDER=openai OPENAI_API_KEY=... npm run dev
 | Tiempos medidos | 26–70 s por turno · 66 s en contenedor (reto 01) |
 | Coste estimado | **0,005 USD/caso** con proveedor de pago · **0** en local |
 | Modelo | `granite4.1:8b` (Ollama, 5,3 GB, Apache 2.0) |
-| Pruebas | **~120 previstas** (se completan F1→F6) · `typecheck` 0 errores · cero `any` |
+| Pruebas | **53** en F1 (meta ~120 al cierre) · `typecheck` 0 errores · cero `any` |
 
 ### 9.6 Si te piden «enséñame el código»
 
 | Quieren ver… | Abre… |
 |---|---|
-| La extracción y el cálculo de confianza | `src/core/extraccion.ts` · `confianza.ts` · `test/extraccion.test.ts` |
+| La extracción y el cálculo de confianza | `src/core/extraccion.ts` · `test/extraccion.test.ts` · `test/normalizacion.test.ts` |
 | La clasificación y el dedupe (RN1–RN4) | `src/core/clasificacion.ts` · `maestro.ts` · `test/clasificacion.test.ts` |
 | El contrato de herramientas | `src/tools/contratos.ts` · `test/herramientas.test.ts` |
 | La auditoría anti-alucinación | `src/tools/contexto.ts` · `test/auditoria.test.ts` |

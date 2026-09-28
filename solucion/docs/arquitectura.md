@@ -49,8 +49,9 @@ determinista** y nada se registra sin que se cumplan las reglas. El modelo no es
 │   son la ÚNICA superficie que el modelo puede llamar y la ÚNICA fuente de valores │
 ├───────────────────────────────────────────────────────────────────────────────────┤
 │ src/core/       MOTOR DETERMINISTA (no hay lenguaje natural aquí)                 │
-│   buzon · extraccion · normalizacion · confianza · clasificacion · maestro · csv  │
-│   archivado · alertas · historial · rutas · io · tipos                            │
+│   buzon · extraccion · clausulas · normalizacion · identificadores · comerciales  │
+│   clasificacion · maestro · csv · archivado · alertas · historial · entorno       │
+│   log · rutas · io · tipos · escritor                                             │
 └───────────┬────────────────────────────────────────┬──────────────────────────────┘
             │ LECTURA (RN6: jamás se escribe ahí)    │ ESCRITURA (confinada a out/)
             ▼                                        ▼
@@ -336,7 +337,7 @@ reto-02/                              raíz del repo y del entregable (.zip = es
     ├── demo.ts                       F2 · los 6 mensajes sin modelo (PRD §6.6)
     ├── agent/prompt.md               F3 · comportamiento del agente
     ├── src/knowledge/registro-contratos.md   F3 · conocimiento del proceso
-    ├── src/core/                     F1 · 14 módulos deterministas
+    ├── src/core/                     18 módulos deterministas (F1 ✅)
     ├── src/tools/                    F2 · el contrato de herramientas
     ├── src/agent/ · src/llm/         F3 · ciclo, sesiones y proveedores
     ├── src/server.ts + src/server/   F3 · API, SSE y estáticos
@@ -357,7 +358,10 @@ reto-02/                              raíz del repo y del entregable (.zip = es
 | `buzon.ts` | Descubre y valida `correo.json` de cada mensaje; decide `tiene_contrato` |
 | `extraccion.ts` | El corazón de HU-2: saca los campos del texto con regex y estructura de cláusulas |
 | `normalizacion.ts` | Numerales en español, fechas («primero (1) de agosto de 2026»), valores monetarios, NIT/RUC, slugs |
-| `confianza.ts` | Reglas de confianza por campo y el umbral 0.8 en **una** constante (RN5) |
+| `clausulas.ts` | Trocea el documento en cláusulas y separa el encabezado del cuerpo cuando van en la misma línea |
+| `identificadores.ts` | NIT/RUC/RTN → país, sin dígito de verificación; slug de carpeta; similitud de objetos (Jaccard) |
+| `comerciales.ts` | Carga `comerciales.json` y resuelve el remitente del correo |
+| `entorno.ts` | Convierte `ctx.directory` en escritor confinado, rutas de datos y fecha de referencia |
 | `clasificacion.ts` | RN1–RN4: duplicado, actualización (incluido el otrosí), nuevo, rechazado |
 | `archivado.ts` | Ruta destino `Contratos/<año>/<slug>/<id>.<ext>` y copia del documento |
 | `historial.ts` | `historial.jsonl` y `procesados.json`: cambios y idempotencia |
@@ -403,12 +407,12 @@ los datos. Las pruebas escriben siempre en un `out/` temporal (`test-utils/`), n
 
 | Suite | Qué fija | Fase |
 |---|---|---|
-| `normalizacion.test.ts` | Numerales en español («doscientos sesenta y cinco millones»), fechas ordinales («primero (1) de agosto de 2026»), valores (`USD 120,000.00`), NIT/RUC → país, slugs | F1 |
-| `csv.test.ts` | Comillas, comas y saltos dentro de un campo; la escritura atómica deja el archivo anterior intacto si falla | F1 |
-| `extraccion.test.ts` | **Casos dorados**: los seis documentos del buzón, campo por campo, con su confianza | F1 |
-| `confianza.test.ts` | El umbral 0.8 y cada regla de confianza por separado | F1 |
-| `clasificacion.test.ts` | RN1–RN4 sobre los seis mensajes **y** casos sintéticos: mismo NIT con otro contrato, mismo id con valor distinto, id ausente con objeto parecido | F1 |
-| `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` (dentro: `CT-2026-004` y `CT-2026-009`; fuera por 12 días: `CT-2026-012`) | F1 |
+| `csv.test.ts` | Comillas, comas y saltos dentro de un campo; la escritura atómica deja el archivo anterior intacto si falla | F1 ✅ |
+| `normalizacion.test.ts` | Numerales en español («doscientos sesenta y cinco millones»), fechas ordinales («primero (1) de agosto de 2026»), importes locales e ingleses, monedas, NIT/RUC → país, slugs y similitud | F1 ✅ |
+| `entrada.test.ts` | El buzón (seis mensajes; contrato vs otrosí vs cotización) y RN6: el fixture se copia a `out/` intacto | F1 ✅ |
+| `extraccion.test.ts` | **Casos dorados**: los seis documentos del buzón, campo por campo, con su confianza y su evidencia | F1 ✅ |
+| `clasificacion.test.ts` | RN1–RN5 sobre los seis mensajes **y** casos sintéticos: objeto idéntico con número nuevo, otrosí de contrato desconocido, número automático | F1 ✅ |
+| `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` (dentro: `CT-2026-004` y `CT-2026-009`; fuera por 12 días: `CT-2026-012`) | F1 ✅ |
 | `herramientas.test.ts` | El contrato del PRD §6.2: string JSON, `{ ok }` en ambos caminos, **no lanza**, args inválidos rechazados por zod y devueltos al modelo | F2 |
 | `auditoria.test.ts` | **Anti-alucinación**: si el modelo propone un valor o una fecha alterados respecto del texto, la respuesta es `requiere_revision` y **no** se escribe (CA2) | F2 |
 | `demo.test.ts` | El recorrido completo: `6/6` mensajes clasificados, `msg-006` sin registrar, la segunda pasada con `confirmado: true` lo registra, y una segunda ejecución no duplica nada (idempotencia) | F2 |
@@ -443,7 +447,7 @@ del reto 01, que es el que ya se sabe sostener.
 | Fase | Contenido | Criterio de salida |
 |---|---|---|
 | **F0** ✅ | Setup: repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, este documento y `repo-setup.md`, README maestro | Árbol limpio, `git status` limpio, ignores verificados con `git add -A --dry-run` |
-| **F1** | `package.json`, `tsconfig.json` y `src/core/` completo con sus pruebas | `npm run typecheck` 0 errores y las suites de `core` en verde con los 6 mensajes |
+| **F1** ✅ | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con 53 pruebas | **Cumplido:** `npm run typecheck` 0 errores y las seis suites de `core` en verde con los 6 mensajes del buzón y sus casos sintéticos |
 | **F2** | `src/tools/contratos.ts`, `src/core/log.ts` y `demo.ts` | `npm run demo` imprime `6/6` clasificados, `msg-006` sin registrar y el segundo pase lo registra (PRD §6.6) |
 | **F3** | `src/agent/`, `src/llm/`, `src/server*`, `agent/prompt.md`, `src/knowledge/` | El prompt del PRD §11 se ejecuta de verdad contra Ollama y `mock`; `api.test.ts` y `bucle.test.ts` en verde |
 | **F4** | `web/` | El recorrido de 5 minutos del README se puede hacer con ratón: tarjetas visibles y banda de confirmación funcionando |
