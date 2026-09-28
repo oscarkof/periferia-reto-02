@@ -15,6 +15,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { cargarContextoAgente } from "../src/agent/prompt.ts"
+import { esConfirmacionExplicita, esRechazo } from "../src/agent/confirmacion.ts"
 import { MAX_ITERACIONES, ejecutarTurno, type ResultadoTurno } from "../src/agent/loop.ts"
 import { crearSesion, type Sesion } from "../src/agent/sesion.ts"
 import type { EventoTurno } from "../src/agent/eventos.ts"
@@ -88,6 +89,16 @@ function filasMaestro(): string[] {
 function registrado(idContrato: string): boolean {
   return filasMaestro().some((fila) => fila.startsWith(`${idContrato},`))
 }
+
+test("la confirmación se detecta con la puntuación que escribe una persona", () => {
+  for (const texto of ["sí", "sí, confirmo", "Sí.", "confirmo el valor 0", "ok, adelante"]) {
+    assert.equal(esConfirmacionExplicita(texto), true, `debería ser confirmación: ${texto}`)
+  }
+  for (const texto of ["no", "todavía no", "sí, pero revisa antes", "espera"]) {
+    assert.equal(esConfirmacionExplicita(texto), false, `no debería ser confirmación: ${texto}`)
+  }
+  assert.equal(esRechazo("no, gracias"), true, "«no, gracias» es un rechazo explícito")
+})
 
 test("el guion del mock usa los nombres reales del registro de herramientas", () => {
   const reales = new Set<string>(listarHerramientas().map((entrada) => entrada.nombre))
