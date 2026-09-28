@@ -149,7 +149,7 @@ ramas se lee igual si algún día se reutiliza esta base.
 
 ---
 
-## 6. Remoto (cuando exista el repositorio)
+## 6. Remoto (lo ejecuta el candidato)
 
 ```bash
 git remote add origin git@github.com:<usuario>/periferia-reto-02.git
@@ -159,9 +159,28 @@ git push -u origin main
 El remoto es independiente del **link de prueba** del PRD §9.3: son cosas distintas (uno es el código,
 el otro la app corriendo).
 
+### Reparto de responsabilidades con el asistente de IA
+
+El flujo está partido a propósito, y conviene dejarlo escrito porque **es parte del entregable** (el
+PRD §0 pide declarar cómo se construyó):
+
+| Acción | Quién |
+|---|---|
+| `git add` + `git commit` en la rama de trabajo (Conventional Commits, un commit por intención) | **Asistente de IA** |
+| Verificación antes de commitear: `git add -A --dry-run`, `git status`, `npm test`, `npm run typecheck` | **Asistente de IA** |
+| Crear la rama de la fase | **Candidato** |
+| `git fetch`, `git pull`, `git push`, abrir el PR, mezclarlo | **Candidato** |
+| Cambiar de rama | **Candidato** |
+
+Motivo: el asistente no tiene —ni debe tener— permiso para escribir en el remoto, y el historial que se
+publica es una decisión del candidato. En la práctica esto significa que **el asistente commitea y
+para**, y entrega los comandos de Git que le tocan al candidato listos para copiar.
+
 ---
 
 ## 7. Checklist de seguridad antes de cada push
+
+Lo corre el **asistente antes de commitear** (equivalente) y el **candidato antes de publicar**:
 
 - [ ] `git ls-files | grep -i env` muestra **solo** `.env.example`
 - [ ] Ningún diff contiene una clave (`git diff --cached` antes de cada commit)
