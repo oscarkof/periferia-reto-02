@@ -26,20 +26,24 @@ y las decisiones de repositorio en [`solucion/docs/repo-setup.md`](solucion/docs
 ## 0. Estado del entregable
 
 Este reto se construye por fases; el historial de commits las sigue una a una. Hoy el repositorio está
-en **F1 (motor determinista)**: `src/core/` completo —extracción, confianza, clasificación, maestro,
-archivo y alertas— con **53 pruebas en verde** y `typecheck` sin errores. **Todavía no hay herramientas,
-agente ni front** (`src/tools/`, `web/`, `demo.ts`), y por eso los comandos de §1 se marcan según lo que
-ya funciona.
+en **F2 (herramientas)**: el motor determinista de `src/core/` más las cinco herramientas `contratos_*`
+y el recorrido `demo.ts`, con **69 pruebas en verde** y `typecheck` sin errores. **Todavía no hay agente
+ni front** (`src/agent/`, `src/llm/`, `web/`), y por eso los comandos de §1 se marcan según lo que ya
+funciona.
 
-| Fase | Qué entrega | Estado |
-|---|---|---|
-| **F0** | Repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, arquitectura y README | ✅ **hecho** |
-| **F1** | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con **53 pruebas** | ✅ **hecho** |
-| **F2** | `src/tools/contratos.ts` + `demo.ts` (los 6 mensajes sin modelo) | ⏳ siguiente |
-| **F3** | Ciclo del agente, adaptadores de proveedor, API HTTP y system prompt | ⏳ |
-| **F4** | Front de chat (tool-calls visibles + banda de confirmación) | ⏳ |
-| **F5** | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ |
-| **F6** | Bonus: `modulo/` empaquetado + test de paridad | ⏳ |
+| Fase | Feature | Rama | Qué entrega | Estado |
+|---|---|---|---|---|
+| **F0** | `setup` | `main` | Repositorio, `.gitignore`, `out/.gitkeep`, `.env.example`, arquitectura y README | ✅ **hecho** |
+| **F1** | `core` | `main` | `package.json`, `tsconfig.json` y `src/core/`: 18 módulos deterministas con **53 pruebas** | ✅ **hecho** |
+| **F2** | `tools` | `f02-tools` | Las cinco herramientas `contratos_*` + `demo.ts` (los 6 mensajes sin modelo) | ✅ **hecho** |
+| **F3** | `agente-llm-api` | `f03-agente-llm` | Ciclo del agente, adaptadores de proveedor (ollama/openai/mock), API HTTP y system prompt | ⏳ siguiente |
+| **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | ⏳ |
+| **F5** | `deploy-solucion` | `f05-deploy` | Docker, `SOLUCION.md` (11 secciones + regla de gobierno) y link público | ⏳ |
+| **F6** | `modulo` (bonus) | `f06-modulo` | Agente empaquetado reutilizable + test de paridad con la app | ⏳ |
+
+Cada fase es **una feature con nombre propio**, y ese nombre es el mismo de la rama y del mensaje de
+commit (`feat(core)`, `feat(tools)`, `feat(agent)`…). La convención completa, con los mensajes listos para
+copiar, está en [`solucion/docs/repo-setup.md`](solucion/docs/repo-setup.md) §5.
 
 ---
 
@@ -60,8 +64,8 @@ ya descargadas.
 |---|---|---|
 | `npm install` | ✅ funciona (75 paquetes, ~4 s) | — |
 | `npm run typecheck` | ✅ **0 errores**, cero `any` | — |
-| `npm test` | ✅ **53 pruebas**, sin modelo y sin red | F2→F6 (hasta ~120) |
-| `npm run demo` | — | F2 (los 6 mensajes del buzón, sin modelo) |
+| `npm test` | ✅ **69 pruebas**, sin modelo y sin red | F3→F6 (hasta ~120) |
+| `npm run demo` | ✅ **`6/6` clasificados**: 3 registrados, 1 duplicado, 1 en revisión, 1 sin escribir | `--confirmar` para la segunda pasada |
 | `npm run dev` | — | F3 (API + ciclo) y F4 (front) |
 | `docker compose up --build` | — | F5 |
 | Leer la arquitectura ya decidida | ✅ | [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md) |
@@ -234,11 +238,12 @@ reto-02/                              ← raíz del repo y del entregable (.zip 
     ├── package.json                  dependencias, scripts y engines                        [F1 ✅]
     ├── package-lock.json             versiones exactas (sí se versiona)                      [F1 ✅]
     ├── tsconfig.json                 TypeScript estricto, sin emitir                          [F1 ✅]
-    ├── demo.ts                       los 6 mensajes sin modelo (PRD §6.6)                    [F2]
+    ├── demo.ts                       los 6 mensajes sin modelo (PRD §6.6)                    [F2 ✅]
     ├── agent/prompt.md               comportamiento del agente (system prompt)               [F3]
     ├── src/knowledge/                conocimiento del proceso que el agente consulta         [F3]
     ├── src/core/                     18 módulos deterministas (F1 ✅)
-    ├── src/tools/                    las cinco herramientas `contratos_*`                     [F2]
+    ├── src/tools/                    las cinco herramientas `contratos_*`                     [F2 ✅]
+    ├── src/demo/                     la lógica del recorrido sin modelo                       [F2 ✅]
     ├── src/agent/                    ciclo, sesiones y confirmación humana                    [F3]
     ├── src/llm/                      adaptadores de proveedor (ollama · openai · mock)        [F3]
     ├── src/server.ts + src/server/   API HTTP, stream SSE y front estático                    [F3]
@@ -296,12 +301,13 @@ Es la razón de que el agente no pueda inventar un dato.
 | `alertas.ts` | Las tres secciones de HU-5 y el `alertas.md` | Es el entregable para gerencia: vencimientos, pólizas y el *gap* cubierto |
 | `log.ts` | Una línea por ejecución de herramienta en `out/log.jsonl` | RN7 · CA4: es la traza, y la misma información alimenta las tarjetas del chat |
 
-### 4.4 `src/tools/`: el contrato de herramientas · F2
+### 4.4 `src/tools/`: el contrato de herramientas · F2 ✅
 
 | Archivo | Qué hace | Por qué existe |
 |---|---|---|
-| `contratos.ts` | Las cinco herramientas `contratos_*` (`description` + `args` en zod + `execute`) | Es la superficie que el modelo puede llamar y la **única fuente de valores** que puede afirmar (CA2). `demo.ts` las importa sin el servidor, como pide el PRD §6.6 |
-| `contexto.ts` | Lo común a todas: resolver `out/` y el maestro desde `ctx`, registrar la ejecución y **auditar** lo que propone el modelo | Evita cinco copias de las mismas comprobaciones y concentra la auditoría anti-alucinación |
+| `contratos.ts` | Las cinco herramientas `contratos_*` (`description` + `args` en zod + `execute`) y los nombres visibles derivados de archivo y export | Es la superficie que el modelo puede llamar y la **única fuente de valores** que puede afirmar (CA2). `demo.ts` las importa sin el servidor, como pide el PRD §6.6 | F2 ✅ |
+| `contexto.ts` | Lo común a todas: construir el entorno desde `ctx.directory`, cargar maestro y comerciales, leer el documento, registrar la ejecución y **auditar** el contrato propuesto | Evita cinco copias de las mismas comprobaciones y concentra la auditoría anti-alucinación (CA2) y el log (RN7) | F2 ✅ |
+| `contrato.ts` | El contrato del PRD §6.2: `Herramienta<Esquema>` con `description` + `args` + `execute`, `exito`/`fallo`/`responder` y `ejecutarValidando` | Un solo sitio define cómo se declara una herramienta; es lo que en F3 usará el backend para ejecutarlas todas igual | F2 ✅ |
 
 ### 4.5 `src/agent/`, `src/llm/` y `src/server*` · F3
 
@@ -325,7 +331,8 @@ Es la razón de que el agente no pueda inventar un dato.
 | Archivo | Qué hace | Por qué existe | Fase |
 |---|---|---|---|
 | `web/index.html`, `estilos.css`, `app.js`, `sse.js` | El chat: historial, campo de entrada, «pensando», **tarjeta por cada llamada a herramienta** y banda de confirmación resaltada | El PRD §6.1 obliga a **mostrar** las llamadas y el estado de confirmación: es parte de la evaluación, no decoración | F4 |
-| `demo.ts` | Recorre los 6 mensajes llamando a las herramientas, sin modelo | PRD §6.6: demuestra el motor determinista en 30 s, sin claves ni descargas | F2 |
+| `demo.ts` | Recorre los 6 mensajes llamando a las herramientas, sin modelo | PRD §6.6: demuestra el motor determinista en 30 s, sin claves ni descargas | F2 ✅ |
+| `src/demo/recorrido.ts` | La lógica del recorrido: `leer_buzon` → `validar` → (`extraer`) → `registrar`, con los estados de cada mensaje | `demo.ts` imprime; la lógica se prueba en aislamiento (5 pruebas) | F2 ✅ |
 | `test/*.test.ts` | Las suites de §6 (motor, herramientas, ciclo, API, front y paridad del módulo) | Que lo que afirma este README esté comprobado, no prometido | F1–F6 |
 | `test-utils/*` | `out/` en un directorio temporal, proveedor falso y DOM mínimo para ejecutar `app.js` | Las pruebas no tocan el `out/` del repo y el front se prueba **ejecutándose**, no mirando el HTML | F1–F4 |
 | `out/.gitkeep` | Marcador de carpeta | Git no versiona carpetas vacías y `out/` debe existir (y estar vacía) desde el primer clon | F0 ✅ |
@@ -333,7 +340,7 @@ Es la razón de que el agente no pueda inventar un dato.
 
 ---
 
-## 5. `demo.ts`: las herramientas sin modelo (F2)
+## 5. `demo.ts`: las herramientas sin modelo (F2 ✅)
 
 ```bash
 cd reto-02/solucion
@@ -343,24 +350,55 @@ node demo.ts --confirmar # además, la segunda pasada de msg-006 con confirmado:
 
 Es el recorrido que pide el PRD §6.6: procesa los seis mensajes llamando **directamente** a las
 herramientas (sin modelo, sin claves, sin red) y por cada uno imprime la clasificación, los campos en
-revisión y la acción tomada. Salida esperada:
+revisión y la acción tomada. La fecha de referencia por defecto es **2026-09-03** (la del prompt del PRD
+§11), no la del reloj: así los números son comparables entre corridas; `FECHA_EJECUCION` la cambia.
+
+Salida real de la primera pasada:
 
 ```
-msg-001  nuevo          registrado    CT-2026-015  Industrias Delta S.A.S.      bóveda: Contratos/2026/industrias-delta/
-msg-002  nuevo          registrado    CT-2026-016  Corporación Andina de Servicios
-msg-003  actualizacion  registrado    CT-2026-011  fecha_fin 2027-05-01 → 2027-11-01 · valor 350000 → 520000
-msg-004  duplicado      sin escribir  CT-2026-012  coincide valor, inicio y fin
-msg-005  rechazado      sin escribir  —            motivo: sin adjunto de contrato
-msg-006  nuevo          EN REVISIÓN   CM-2026-03   valor (0 · indeterminado), fecha_fin (derivada), comercial (no registrado)
+out/ limpiado al inicio (0 entradas eliminadas)
+fecha de referencia: 2026-09-03
 
-casos procesados: 6/6 · registrados: 3 · en revisión: 1 · sin escribir: 2
+━━━ msg-001 · nuevo · ✔ insertado
+  CT-2026-015 · INDUSTRIAS DELTA S.A.S. · 265000000 COP · 2026-08-01 → 2027-07-31
+  archivo: Contratos/2026/industrias-delta/CT-2026-015.txt
+
+━━━ msg-002 · nuevo · ✔ insertado
+  CT-2026-016 · CORPORACIÓN ANDINA DE SERVICIOS S.A. · 120000 USD · 2026-08-15 → 2027-08-14
+  archivo: Contratos/2026/corporacion-andina-de-servicios/CT-2026-016.txt
+
+━━━ msg-003 · actualizacion · ✔ actualizado
+  CT-2026-011 · MINERA LOS ANDES S.A.C. · 520000 PEN · ? → 2027-11-01
+    · valor: 350000 → 520000
+    · fecha_fin: 2027-05-01 → 2027-11-01
+
+━━━ msg-004 · duplicado · ≈ duplicado: no se escribió
+  aviso: CT-2026-012 ya está en el maestro con el mismo valor y el mismo plazo
+
+━━━ msg-005 · rechazado · — sin escribir
+  msg-005 no trae un adjunto de contrato: sin contrato no hay nada que extraer (RN4)
+
+━━━ msg-006 · nuevo · ⏳ EN REVISIÓN (no se registró)
+  requiere revisión antes de registrar: valor, fecha_fin
+  aviso: el remitente jperez@periferia-ficticia.com no está en comerciales.json: se registra sin comercial asignado
+  aviso: contrato por demanda: el valor se registra como 0 y conviene confirmarlo
+  revisar: valor = 0 con confianza 0.50
+  revisar: fecha_fin = 2027-08-31 con confianza 0.70
+
+casos procesados: 6/6 · registrados: 3 · duplicados: 1 · en revisión: 1 · sin escribir: 1
+
+(queda pendiente de confirmación: msg-006 · vuelve a correr con --confirmar)
+
+alertas: 2 por vencer · 2 póliza(s) pendiente(s) · 3 registrado(s) desde el corte → out/alertas.md
+resumen determinista: out/resumen.json
 ```
 
-Con `--confirmar`, la segunda pasada de `msg-006` (ya con `confirmado: true`) lo registra y la demo lo
-muestra: es la demostración de que **la confirmación humana es la que desbloquea la escritura** (RN5 y
-CA3). El proceso es **idempotente**: una segunda ejecución no vuelve a registrar nada, porque
-`out/procesados.json` ya lo sabe. Y limpia `out/` al empezar, así que dos corridas dan el mismo
-resultado salvo marcas de tiempo (PRD §8 · Determinismo).
+Con `--confirmar`, la segunda pasada —ya con `confirmado: true`— registra `msg-006` y la demo lo muestra:
+es la demostración de que **la confirmación humana es la que desbloquea la escritura** (RN5 · CA3). El
+proceso es **idempotente**: `out/procesados.json` guarda lo resuelto, así que volver a correrlo no
+duplica ni una fila (solo reaparece la cotización rechazada, porque no había nada que registrar). Y como
+limpia `out/` al empezar, dos corridas dan el mismo `out/resumen.json` — sin timestamps, para poder
+compararlo (PRD §8 · Determinismo).
 
 ---
 
@@ -380,17 +418,16 @@ npm run typecheck   # 0 errores
 | `extraccion.test.ts` | **Casos dorados**: los seis documentos, campo por campo, con su confianza y su evidencia | ✅ 7 |
 | `clasificacion.test.ts` | RN1–RN5 sobre los seis mensajes y casos sintéticos (objeto idéntico con número nuevo, otrosí de contrato desconocido, número automático) | ✅ 9 |
 | `alertas.test.ts` | Los bordes de los 60 días con `hoy = 2026-09-03` y las tres secciones del reporte | ✅ 7 |
-| `herramientas.test.ts` | El contrato del PRD §6.2: string JSON, `{ ok }` en ambos caminos, **no lanza**, args inválidos rechazados | F2 |
-| `auditoria.test.ts` | **Anti-alucinación**: si el modelo propone un valor alterado, la respuesta es revisión y no se escribe (CA2) | F2 |
-| `demo.test.ts` | El recorrido completo y la idempotencia de la segunda ejecución | F2 |
+| `herramientas.test.ts` | El contrato del PRD §6.2: string JSON en ambos caminos, **no lanza**, ids raros rechazados, **anti-alucinación (CA2)**, RN5 y RN7 | ✅ 10 |
+| `demo.test.ts` | El recorrido completo, la tabla del PRD §7.4, la segunda pasada con confirmación y la **idempotencia** | ✅ 5 |
 | `bucle.test.ts` | Topes (CA1), confirmación solo con un «sí» del turno anterior (CA3), proveedor que falla sin matar la sesión (CA5) | F3 |
 | `api.test.ts` | Las tres rutas del PRD §6.4 y que ninguna respuesta contenga la clave | F3 |
 | `front-navegador.test.ts` | `web/app.js` en un DOM mínimo: pintado, tarjetas y banda de confirmación | F4 |
 | `paridad-modulo.test.ts` | Que `modulo/` siga siendo **las mismas piezas** que usa la app | F6 |
 
-Estado: **53 pruebas en verde** (F1), `typecheck` con 0 errores y **cero `any`**. La meta al cerrar el
-reto es ~120, el mismo listón que se sostuvo en el reto 01. Las pruebas escriben en un `out/` temporal,
-nunca en el del repositorio.
+Estado: **69 pruebas en verde** (F1 + F2), `typecheck` con 0 errores y **cero `any`**. La meta al cerrar
+el reto es ~120, el mismo listón que se sostuvo en el reto 01. Las pruebas escriben en un `out/` temporal
+o usan `OUT_DIR`, así que **nunca** tocan el del repositorio.
 
 ---
 

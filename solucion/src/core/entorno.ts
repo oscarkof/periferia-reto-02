@@ -59,8 +59,16 @@ export function fechaDelSistema(ahora: Date = new Date()): string {
  */
 export function crearEntorno(raiz: string, opciones: OpcionesEntorno = {}): Resultado<Entorno> {
   const sesion = opciones.sesion ?? "demo"
-  const fixtures = opciones.fixtures ?? path.resolve(raiz, "..", "fixtures", "reto-02")
-  const out = opciones.out ?? path.join(raiz, "out")
+  const fixturesEnv = process.env["FIXTURES_DIR"]
+  const outEnv = process.env["OUT_DIR"]
+  const fixtures =
+    opciones.fixtures ??
+    (fixturesEnv !== undefined && fixturesEnv.trim() !== ""
+      ? path.resolve(fixturesEnv)
+      : path.resolve(raiz, "..", "fixtures", "reto-02"))
+  const out =
+    opciones.out ??
+    (outEnv !== undefined && outEnv.trim() !== "" ? path.resolve(outEnv) : path.join(raiz, "out"))
 
   const hoyCrudo = opciones.hoy ?? process.env["FECHA_EJECUCION"] ?? fechaDelSistema()
   const hoy = validarFecha(hoyCrudo, "FECHA_EJECUCION")
