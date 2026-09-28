@@ -31,8 +31,9 @@ en **F5 (despliegue y `SOLUCION.md`)**: el motor determinista de `src/core/`, la
 `openai`, `mock`), validación y auditoría de cada llamada, confirmación humana en el código—, la **API
 HTTP** con stream de eventos, el **front** de chat y, encima, **`docker compose up --build`** validado
 (contenedor *healthy*) y **`SOLUCION.md`** con las 11 secciones del PRD §9.1 y la regla de gobierno de
-§7.5. **96 pruebas en verde y `typecheck` sin errores.** Falta publicar el link (§8) y el módulo
-reutilizable (F6); los comandos de §1 se marcan según lo que ya funciona.
+§7.5. **96 pruebas en verde y `typecheck` sin errores.** El link se prueba en local por **decisión**
+(§8 · −10 asumido del PRD §9.3); solo falta el módulo reutilizable (F6). Los comandos de §1 se marcan según
+lo que ya funciona.
 
 | Fase | Feature | Rama | Qué entrega | Estado |
 |---|---|---|---|---|
@@ -41,7 +42,7 @@ reutilizable (F6); los comandos de §1 se marcan según lo que ya funciona.
 | **F2** | `tools` | `f02-tools` | Las cinco herramientas `contratos_*` + `demo.ts` (los 6 mensajes sin modelo) | ✅ **hecho** |
 | **F3** | `agente-llm-api` | `f03-agente-llm-api` | Ciclo del agente, adaptadores de proveedor (ollama/openai/mock), API HTTP y system prompt | ✅ **hecho** |
 | **F4** | `web` | `f04-web` | Front de chat: tool-calls visibles y banda de confirmación | ✅ **hecho** |
-| **F5** | `deploy-solucion` | `f05-deploy` | Docker (`Dockerfile`, `docker-compose.yml`, `.dockerignore`), `SOLUCION.md` (11 secciones + regla de gobierno) y publicación del link | ✅ **hecho** (falta publicar el link, §8) |
+| **F5** | `deploy-solucion` | `f05-deploy` | Docker (`Dockerfile`, `docker-compose.yml`, `.dockerignore`), `SOLUCION.md` (11 secciones + regla de gobierno) y publicación del link | ✅ **hecho** (el link se prueba en local, por decisión: §8) |
 | **F6** | `modulo` (bonus) | `f06-modulo` | Agente empaquetado reutilizable + test de paridad con la app | ⏳ |
 
 Cada fase es **una feature con nombre propio**, y ese nombre es el mismo de la rama y del mensaje de
@@ -514,35 +515,36 @@ LLM_PROVIDER=openai OPENAI_API_KEY=... npm run dev
 
 ## 8. Link de prueba
 
-> **Pendiente de publicar.** La parte difícil ya está hecha: la imagen se construye y el contenedor arranca
-> *healthy* con `docker compose up --build` (validado en esta máquina, §1). Lo que falta es el extremo
-> público, y eso es una decisión de infraestructura, no de código: abajo están las vías con su costo.
-> Mientras tanto, la aplicación se levanta en local con un comando; el PRD §9.3 admite esa modalidad
-> con −10.
+> **Decisión: se prueba en local durante la defensa.** El PRD §9.3 admite esa modalidad y asume el **−10**.
+> Lo que sí está hecho y verificado es el despliegue: `docker compose up --build` construye la imagen y el
+> contenedor arranca *healthy* (§1), así que lo único que falta para tener URL pública es el extremo, y
+> abajo quedan las vías con sus comandos por si se decide activarlo (son tres minutos).
 
-| Vía | Cómo | A favor | En contra |
+**Cómo se prueba entonces:** un comando de §1 y `http://127.0.0.1:3000`. Para enseñarlo rápido, con
+`LLM_PROVIDER=mock` el turno responde en ~20 ms; con Ollama real el turno del buzón tarda ~3 minutos, y el
+front va mostrando cada herramienta mientras ocurre.
+
+| Vía, si se decide publicar | Cómo | A favor | En contra |
 |---|---|---|---|
-| **Túnel a esta máquina** (Cloudflare Tunnel o ngrok) | `docker compose up -d` y luego el túnel apuntando a `http://127.0.0.1:3000` | Es lo único que deja el **modelo local** funcionando de verdad por el link: el agente llama a Ollama en la máquina, no en el contenedor | El link vive mientras la máquina esté encendida y la URL gratuita cambia si se reinicia el túnel |
-| **Render / Railway / Fly.io** | Desplegar la imagen del `Dockerfile` | Link permanente, sin depender de tu portátil | Sin GPU no hay modelo local: hay que poner `LLM_PROVIDER=openai` + clave, o enseñar el `mock` |
+| **Túnel a esta máquina** (Cloudflare Tunnel o ngrok) | `docker compose up -d` y luego el túnel apuntando a `http://127.0.0.1:3000` | Es lo único que deja el **modelo local** funcionando por el link: el agente llama a Ollama en la máquina, no en el contenedor | El link vive mientras la máquina esté encendida y la URL gratuita cambia al reiniciar el túnel |
+| **Render / Railway / Fly.io** | Desplegar la imagen del `Dockerfile` | Link permanente, sin depender del portátil | Sin GPU no hay modelo local: hay que poner `LLM_PROVIDER=openai` + clave, o enseñar el `mock` |
 | **Azure** (Container Apps o App Service) | Igual, con la imagen en un *registry* | Es la nube que un cliente corporativo ya tiene contratada | Es la vía más lenta de montar para una demo de 5 minutos |
 | **VPS con Ollama incluido** | `docker compose up` en el VPS | Modelo local y una sola máquina que mantener | La CPU de un VPS pequeño da más latencia que un portátil con GPU (y el turno ya tarda 3 minutos en local) |
 
-**Cómo se activa el túnel** (la vía que recomiendo, porque conserva el modelo real):
+**Cómo se activaría el túnel** (la vía que conserva el modelo real):
 
 ```bash
-brew install cloudflared                     # o: npm i -g cloudflared / descarga el binario
+brew install cloudflared                     # no está instalado en esta máquina
 cd reto-02 && docker compose up -d           # el agente, en http://127.0.0.1:3000
 cloudflared tunnel --url http://127.0.0.1:3000
-# imprime una URL https://…trycloudflare.com — esa es la del entregable
+# imprime una URL https://…trycloudflare.com — esa sería la del entregable
 ```
 
-Para que el link sea **estable** (misma URL cada vez) hace falta un túnel con nombre y un dominio en
-Cloudflare; con la cuenta gratuita se puede hacer, y el comando queda
-`cloudflared tunnel run reto-02`. Si se prefiere una plataforma con hosting permanente, cambiar
-`LLM_PROVIDER` a `openai` es una variable de entorno: el contenedor ya trae el adaptador.
+Para que el link fuera **estable** (misma URL siempre) haría falta un túnel con nombre y un dominio en
+Cloudflare; con la cuenta gratuita se puede, y el comando queda `cloudflared tunnel run reto-02`.
 
-**Clave de acceso:** no aplica; el link sería público y **no expone ninguna clave de modelo** (el
-adaptador lee la clave del entorno del backend y `/api/health` solo dice el nombre del proveedor).
+**Clave de acceso:** no aplica. El backend no expone ninguna clave de modelo (`/api/health` solo dice el
+nombre del proveedor y hay una prueba que lo fija), así que un link público no filtraría credenciales.
 
 ---
 
@@ -643,9 +645,9 @@ adaptador lee la clave del entorno del backend y `/api/health` solo dice el nomb
 
 ## 10. Qué queda fuera (limitaciones declaradas)
 
-1. **El link público está pendiente de publicar** (§8): la imagen y el contenedor están validados, falta el
-   extremo público (túnel o plataforma, con su costo en la tabla de §8). El PRD §9.3 acepta probarlo en
-   local durante la defensa, con −10.
+1. **El link público no se publica, por decisión** (§8): se prueba en local durante la defensa, como admite
+   el PRD §9.3, asumiendo el **−10**. El despliegue está validado (imagen y contenedor *healthy*) y las vías
+   para publicarlo, documentadas con sus comandos: activarlo son tres minutos si se cambia de idea.
 2. **Sin OCR y sin PDF escaneado**: el PRD §3.2 lo excluye. Los fixtures traen el texto del contrato ya
    en `.txt`; `contratos_leer_pdf` (PDF con texto) queda como P1 opcional.
 3. **No hay conexión real a Exchange ni a SharePoint**: se simulan con carpetas locales, como autoriza el

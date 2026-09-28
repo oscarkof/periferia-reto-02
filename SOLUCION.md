@@ -10,7 +10,7 @@ cd reto-02 && docker compose up --build      # o: cd solucion && npm install && 
 | | |
 |---|---|
 | **Front de chat + API** | `http://127.0.0.1:3000` (el backend sirve el front: un proceso, un puerto) |
-| **Link de prueba** | Ver §8 del README; mientras no esté publicado, se levanta en local con el comando de arriba |
+| **Link de prueba** | **No publicado, por decisión**: se prueba en local con el comando de arriba durante la defensa (PRD §9.3, −10 asumido). El README §8 deja las vías y los comandos por si se decide activarlo |
 | **Recorrido sin modelo** | `cd solucion && npm run demo` (y `--confirmar` para la segunda pasada) |
 | **Pruebas** | `cd solucion && npm test` → **96 en verde**, sin modelo y sin red · `npm run typecheck` → 0 errores |
 | **Diseño por dentro** | [`solucion/docs/arquitectura.md`](solucion/docs/arquitectura.md) (más detalle que este documento) |
@@ -477,7 +477,7 @@ hay que usar un modelo.
 | **`demo.ts` sin modelo** | ✅ | `npm run demo` → `6/6` clasificados; `--confirmar` registra `msg-006`; repetirlo no duplica (`test/demo.test.ts`) |
 | **Regla de gobierno (§7.5)** | ✅ | §6 de este documento |
 | **Un comando para levantar** | ✅ | `docker compose up --build` y `npm run dev`; `test/api.test.ts` comprueba que el backend sirve el front |
-| **Link público** | ⏳ | Pendiente de publicar (ver README §8). Mientras, se levanta en local con un comando |
+| **Link público** | 🚫 **No publicado, por decisión** | Se prueba en local durante la defensa (PRD §9.3, **−10 asumido**). El despliegue sí está validado (`docker compose up --build`, contenedor *healthy*) y las vías de publicación quedan documentadas en el README §8: activarlo son tres minutos |
 | **Bonus: módulo reutilizable** | ⏳ | F6: `modulo/` + `test/paridad-modulo.test.ts` |
 
 **Qué falta para llevarlo a producción**
