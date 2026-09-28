@@ -541,7 +541,7 @@ LLM_PROVIDER=openai OPENAI_API_KEY=... npm run dev
 
 ## 8. Link de prueba
 
-> **Decisión: se prueba en local durante la defensa.** El PRD §9.3 admite esa modalidad y asume el **−10**.
+> **Decisión: se despliega en local durante la defensa.** El PRD §9.3 admite esa modalidad y asume el **−10**.
 > Lo que sí está hecho y verificado es el despliegue: `docker compose up --build` construye la imagen y el
 > contenedor arranca *healthy* (§1), así que lo único que falta para tener URL pública es el extremo, y
 > abajo quedan las vías con sus comandos por si se decide activarlo (son tres minutos).

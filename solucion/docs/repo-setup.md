@@ -212,3 +212,50 @@ zip -r ../reto-02-<apellido>.zip . -x "*/node_modules/*" -x "*/out/*" -x "*/.env
 
 Antes de generarlo: `git status` limpio, `npm test` en verde y el link activo. `*.zip` está ignorado
 por git, así que el artefacto no entra en el propio repositorio.
+
+---
+
+## 6. Alcance de F6 · módulo reutilizable (bonus del PRD §9.4)
+
+**Qué pide el PRD.** Una carpeta `modulo/` con el agente **empaquetado para integrarse a otras plataformas de
+agentes, sin depender del servidor**, con tres piezas:
+
+| Pieza | Qué lleva | En este reto |
+|---|---|---|
+| `modulo/agent.md` | frontmatter `description`, `mode: primary`, `permission {edit: deny, bash: deny}` + **cuerpo: el system prompt** | el cuerpo de `solucion/agent/prompt.md` (71 líneas), que es el que carga `src/agent/prompt.ts` |
+| `modulo/tools/contratos.ts` | **las mismas herramientas**, importables sin el servidor | las cinco de `solucion/src/tools/contratos.ts` (435 líneas): `contratos_leer_buzon`, `contratos_extraer`, `contratos_validar`, `contratos_registrar`, `contratos_alertas` |
+| `modulo/skill/registro-contratos/SKILL.md` | frontmatter `name`, `description` + **cuerpo: el conocimiento del proceso** | el cuerpo de `solucion/src/knowledge/registro-contratos.md` (169 líneas) |
+
+**El criterio de evaluación, en palabras del PRD:** *«se evalúa que las tres piezas sean las mismas que usa tu
+aplicación (no copias divergentes)»*. Ahí se gana o se pierde el bonus: no basta con que el módulo funcione,
+tiene que ser **la misma pieza**.
+
+**Diseño propuesto (una sola fuente de verdad).**
+
+1. `modulo/tools/contratos.ts` es un **re-export de la pieza de la app**:
+   `export * from "../../solucion/src/tools/contratos.ts"`. Así no hay dos copias que puedan divergir y el
+   módulo usa exactamente las herramientas del entregable (mismas reglas RN1–RN4 y RN5, misma validación
+   `zod`, mismo maestro). Ojo: `contratos.ts` arrastra hermanos (`contexto.ts` y `contrato.ts`), así que al
+   extraer el módulo a otra plataforma hay que llevarse la carpeta `tools/` entera; la ruta del `import` es lo
+   único que cambia, y eso va dicho en el propio archivo.
+2. `modulo/agent.md` lleva el frontmatter y, debajo, **el cuerpo del prompt tal cual**.
+3. `modulo/skill/registro-contratos/SKILL.md` lleva frontmatter `name`/`description` y, debajo, **el cuerpo del
+   conocimiento tal cual**.
+
+**`test/paridad-modulo.test.ts`: la prueba que lo demuestra** (no puede pasar si alguien copia y edita):
+
+| Qué comprueba | Cómo |
+|---|---|
+| Que el módulo no duplica las herramientas | el archivo del módulo **re-exporta** el de la app: la ruta importada existe y no hay código propio |
+| Que las herramientas son las mismas | los nombres del módulo y los de la app son **idénticos y en el mismo orden** (los cinco `contratos_*`) |
+| Que funcionan sin el servidor | se ejecuta una herramienta desde el módulo contra el buzón del fixture y se compara con la salida del mismo caso por la app (mismo JSON, mismos contratos y alertas) |
+| Que el prompt no divergió | el cuerpo de `modulo/agent.md` (sin frontmatter) es igual al de `solucion/agent/prompt.md` |
+| Que el conocimiento no divergió | el cuerpo de `SKILL.md` (sin frontmatter) es igual al de `solucion/src/knowledge/registro-contratos.md` |
+
+**Criterio de salida de F6:** `npm test` en verde **con la prueba de paridad incluida**, `typecheck` en 0, y
+que la prueba **falle** si se edita cualquiera de las tres piezas en un solo lado (se comprueba cambiando el
+prompt del módulo a mano y viendo el rojo).
+
+**Ramas y commits previstos:** `f06-modulo` ·
+`feat(modulo): agente empaquetado reutilizable con las piezas de la app` ·
+`test(modulo): paridad con el prompt, las herramientas y el conocimiento`.
