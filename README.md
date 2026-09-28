@@ -39,6 +39,7 @@ mismo con cualquier modelo o sin ninguno.
 | Saber el stack y por qué cada pieza | [2. Stack](#2-stack-con-qué-está-hecho-y-por-qué) |
 | Entender la elección del modelo, con números | [3. El modelo](#3-el-modelo-elección-mediciones-y-costo) |
 | Saber qué hace cada archivo | [4. Estructura](#4-estructura-del-repositorio-archivo-por-archivo) |
+| Ver la arquitectura en un diagrama navegable | [`solucion/docs/diagramas/arquitectura-reto02.html`](solucion/docs/diagramas/arquitectura-reto02.html) |
 | Ver las herramientas sin modelo | [5. `demo.ts`](#5-demots-las-herramientas-sin-modelo-f2) |
 | Correr las pruebas | [6. Pruebas](#6-pruebas-automáticas-f1-en-adelante) |
 | Configurar el entorno | [7. Variables de entorno](#7-variables-de-entorno) |
@@ -339,6 +340,7 @@ reto-02/                              ← raíz del repo y del entregable (.zip 
 | `.gitignore` | Lo mínimo para que esta carpeta se pueda reutilizar como base de otro reto | Portabilidad: no arrastra basura de este reto | F0 ✅ |
 | `docs/arquitectura.md` | El diseño completo: capas, contrato de herramientas, flujo por mensaje, extracción y confianza, clasificación, `out/`, alertas, decisiones y plan de pruebas | Es el contrato de lo que se construye; evita decidir sobre la marcha | F0 ✅ |
 | `docs/repo-setup.md` | Cómo está armado el repositorio: ignores con su porqué, los dos commits de F0, convención de commits, checklist de seguridad y plan del entregable | Que las decisiones de entrega estén escritas y no en la cabeza de nadie | F0 ✅ |
+| `docs/diagramas/arquitectura-reto02.html` | Diagrama de arquitectura navegable (front → API → ciclo → herramientas → motor → buzón, maestro y `out/`), autocontenido y generado con la skill **archify** | Deja ver de un vistazo cómo se conectan las capas y **de dónde sale cada valor**: cada nodo enlaza a la línea del código que lo sostiene, en la revisión exacta del repositorio | F0 ✅ |
 | `package.json` | Dependencias, 4 scripts (`test`, `typecheck`, `demo`, `dev`) y `engines: >=22.18` | Un comando (`npm run dev`) y un runner sin dependencias extra | F1 ✅ |
 | `tsconfig.json` | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `erasableSyntaxOnly`, sin emitir | Es el contrato de calidad: sin `any` y con la sintaxis que Node puede borrar | F1 ✅ |
 
